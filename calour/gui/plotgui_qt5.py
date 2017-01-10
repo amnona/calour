@@ -1,17 +1,16 @@
-import matplotlib
-matplotlib.use("Qt5Agg")
+import time
+import sys
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import (QMainWindow, QHBoxLayout, QVBoxLayout,
                              QSizePolicy, QWidget, QPushButton, QLabel, QListWidget, QSplitter,
                              QFrame, QComboBox, QScrollArea, QListWidgetItem)
+from PyQt5.QtWidgets import QApplication
 
 from calour.bactdb import BactDB
 from calour.gui.plotgui import PlotGUI
-
-
-# app_ref=set()
 
 
 class PlotGUI_QT5(PlotGUI):
@@ -24,11 +23,30 @@ class PlotGUI_QT5(PlotGUI):
         self.bactdb = BactDB()
 
     def get_figure(self, newfig=None):
+        app_created = False
+        app = QtCore.QCoreApplication.instance()
+        print(sys.argv)
+        if app is None:
+            # app = QApplication(sys.argv)
+            app = QApplication(['calour-%s' % time.ctime()])
+            app_created = True
+        self.app = app
+        self.app_created = app_created
+        if app_created:
+            app.references = set()
+
         self.aw = ApplicationWindow(self.exp)
-#        app_ref.add(self.aw)
+        # if app_created:
+        #     app.references.add(self.aw)
+        app.references.add(self.aw)
         self.aw.setWindowTitle("Calour")
         self.aw.show()
         return self.aw.plotfigure
+
+    def run_gui(self):
+        self.app.exec_()
+        # if self.app_created:
+        #     self.app.exec_()
 
     def update_info(self):
         taxname = self.exp.feature_metadata['taxonomy'][self.last_select_feature]
@@ -155,4 +173,3 @@ class ApplicationWindow(QMainWindow):
 
     def closeEvent(self, ce):
         self.fileQuit()
-

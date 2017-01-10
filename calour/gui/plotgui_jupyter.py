@@ -23,14 +23,20 @@ class PlotGUI_Jupyter(PlotGUI):
         self.labsamp = Label('Sample')
         self.labreads = Label('Reads:')
         self.labdb = HTML('?')
+        self.labdb2 = SelectMultiple()
         self.labdb.layout.overflow = 'auto'
         self.labdb.layout.overflow_x = 'auto'
         self.labdb.layout.max_height = '50px'
         self.labdb.layout.white_space = 'nowrap'
+        self.labdb.layout.border = '5px solid gray;'
+        self.labdb.background_color = 'red'
         # self.labdb.layout.width = '200px'
         self.zoomin = Button(description='+')
         self.zoomin.on_click(lambda f: zoom_in(f, self))
-        display(self.zoomin)
+        self.zoomout = Button(description='-')
+        self.zoomout.on_click(lambda f: zoom_out(f, self))
+        display(HBox([self.zoomin,self.zoomout]))
+        # display(self.zoomout)
         display(self.labtax)
         display(self.labsamp)
         display(self.labreads)
@@ -49,7 +55,10 @@ class PlotGUI_Jupyter(PlotGUI):
         for cinfo in info:
             cstr = cinfo[1]
             ccolor = self._get_color(cinfo[0])
-            idata += '<p style="color:%s;white-space:nowrap;">%s</p>' % (ccolor, cstr)
+            # idata += '<style> a:link {color:green; background-color:transparent; text-decoration:none} a:visited {color:pink; background-color:transparent; text-decoration:none} a:hover {color:red; background-color:transparent; text-decoration:underline} a:active  {color:yellow; background-color:transparent; text-decoration:underline} </style>'
+            idata += '<style> a:link {color:%s; background-color:transparent; text-decoration:none} a:visited {color:%s; background-color:transparent; text-decoration:none}</style>' % (ccolor, ccolor)
+            # idata += '<p style="color:%s;white-space:nowrap;"><a href="http://amnonim.webfactional.com/scdb_website/exp_info/19" target="_blank">%s</a></p>' % (ccolor, cstr)
+            idata += '<p style="color:%s;white-space:nowrap;"><a href="http://amnonim.webfactional.com/scdb_website/exp_info/19" target="_blank">%s</a></p>' % (ccolor, cstr)
         self.labdb.value = idata
 
     def _get_color(self, details):
@@ -77,3 +86,14 @@ def zoom_in(b, hdat):
     clear_output(wait=True)
     display(hdat.fig)
 
+
+def zoom_out(b, hdat):
+    ax = hdat.fig.gca()
+    ylim_lower, ylim_upper = ax.get_ylim()
+    xlim_lower, xlim_upper = ax.get_xlim()
+    ax.set_ylim(
+            ylim_lower,
+            ylim_lower + (ylim_upper - ylim_lower) * hdat.zoom_scale)
+    hdat.canvas.draw()
+    clear_output(wait=True)
+    display(hdat.fig)
