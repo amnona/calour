@@ -277,7 +277,7 @@ def sort_samples(exp, field, **kwargs):
     return newexp
 
 
-def sort_freq(exp, field=None, value=None, inplace=False, **kwargs):
+def sort_abundance(exp, field=None, value=None, inplace=False, **kwargs):
     '''Sort features based on their abundance in a subset of the samples.
     This is a convenience wrapper for sort_by_data()
 
@@ -306,12 +306,12 @@ def sort_freq(exp, field=None, value=None, inplace=False, **kwargs):
     return newexp
 
 
-def cluster_features(exp, minreads=10, inplace=False, **kwargs):
+def cluster_features(exp, min_abundance=10, inplace=False, **kwargs):
     '''Cluster features following filtering of minimal abundance on features and
        log transform and scaling on the data (mean 0 std 1)
     '''
-    if minreads > 0:
-        newexp = exp.filter_min_abundance(minreads, inplace=inplace)
+    if min_abundance > 0:
+        newexp = exp.filter_min_abundance(min_abundance, inplace=inplace)
     else:
         newexp = exp
     newexp = newexp.cluster_data(transform=transforming.transform, axis=0, steps=[transforming.log_n, transforming.scale], scale__axis=0, inplace=inplace, **kwargs)

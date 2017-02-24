@@ -77,7 +77,7 @@ class ExperimentTests(Tests):
         data = exp.get_data(sparse=False)
         orig_data = orig_exp.get_data(sparse=False)
         okseqs = np.hstack([np.arange(5), np.arange(6, 12)])
-        npt.assert_array_equal(data[:, :], orig_data[:, okseqs])
+        npt.assert_array_equal(data, orig_data[:, okseqs])
         # and is inplace
         self.assertIs(exp, self.test1)
 

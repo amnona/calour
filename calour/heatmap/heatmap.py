@@ -263,7 +263,7 @@ def plot(exp, gui='cli', databases=('dbbact',), **kwargs):
     gui_obj()
 
 
-def plot_s(exp, field=None, **kwargs):
+def plot_sort(exp, field=None, **kwargs):
     '''Plot bacteria after sorting by field
     This is a convenience wrapper for plot()
     Note: if sample_field is in **kwargs, use it as labels after sorting using field
