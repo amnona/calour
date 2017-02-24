@@ -91,8 +91,8 @@ class SortingTests(Tests):
         # look if one feature is in the correct place
         self.assertEqual(exp.feature_metadata.index[1], self.test1.feature_metadata.index[4])
 
-    def test_sort_freq_mean(self):
-        exp = self.test1.sort_freq(key='mean')
+    def test_sort_abundance_mean(self):
+        exp = self.test1.sort_abundance(key='mean')
         okseqs = ['TACGTAGGTCCCGAGCGTTGTCCGGATTTATTGGGCGTAAAGGGTGCGTAGGCGGCCTGTTAAGTAAGTGGTTAAATTGTTGGGCTCAACCCAATCCGGCCACTTAAACTGGCAGGCTAGAGTATTGGAGAGGCAAGTGGAATTCCATGT',
                   'TACGTATGTCACAAGCGTTATCCGGATTTATTGGGTGTAAAGGGTGCGTAGACGGAAATGCAAGTTAGTTGTGAAATACCTCGGCTTAACTGAGGAACTGCAACTAAAACTATATTTCTTGAGTATCGGAGGGGTTTGTGGAATTCCTAG',
                   'ACGT',
@@ -108,8 +108,8 @@ class SortingTests(Tests):
         self.assertEqual(list(exp.feature_metadata.index.values), okseqs)
         self.assertEqual(exp.shape, self.test1.shape)
 
-    def test_sort_freq_default(self):
-        exp = self.test1.sort_freq()
+    def test_sort_abundance_default(self):
+        exp = self.test1.sort_abundance()
         okseqs = ['TACGTAGGTCCCGAGCGTTGTCCGGATTTATTGGGCGTAAAGGGTGCGTAGGCGGCCTGTTAAGTAAGTGGTTAAATTGTTGGGCTCAACCCAATCCGGCCACTTAAACTGGCAGGCTAGAGTATTGGAGAGGCAAGTGGAATTCCATGT',
                   'TACGTATGTCACAAGCGTTATCCGGATTTATTGGGTGTAAAGGGTGCGTAGACGGAAATGCAAGTTAGTTGTGAAATACCTCGGCTTAACTGAGGAACTGCAACTAAAACTATATTTCTTGAGTATCGGAGGGGTTTGTGGAATTCCTAG',
                   'ACGT',
@@ -125,8 +125,8 @@ class SortingTests(Tests):
         self.assertEqual(list(exp.feature_metadata.index.values), okseqs)
         self.assertEqual(exp.shape, self.test1.shape)
 
-    def test_sort_freq_subgroup(self):
-        exp = self.test1.sort_freq(field='#SampleID', value='S1')
+    def test_sort_abundance_subgroup(self):
+        exp = self.test1.sort_abundance(field='#SampleID', value='S1')
         okseqs = ['TACGTAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGTGCGCAGGCGGTTTTGTAAGTCTGATGTGAAATCCCCGGGCTCAACCTGGGAATTGCATTGGAGACTGCAAGGCTAGAATCTGGCAGAGGGGGGTAGAATTCCACG',
                   'TACGTAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGTGCGCAGGCGGTTATGTAAGACAGTTGTGAAATCCCCGGGCTCAACCTGGGAACTGCATCTGTGACTGCATAGCTAGAGTACGGTAGAGGGGGATGGAATTCCGCG',
                   'TACGTAGGTCCCGAGCGTTGTCCGGATTTATTGGGCGTAAAGGGTGCGTAGGCGGCCTGTTAAGTAAGTGGTTAAATTGTTGGGCTCAACCCAATCCGGCCACTTAAACTGGCAGGCTAGAGTATTGGAGAGGCAAGTGGAATTCCATGT',
