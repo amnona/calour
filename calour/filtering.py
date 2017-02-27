@@ -50,6 +50,8 @@ def downsample(exp, field, axis=0, num_keep=None, inplace=False):
         x = exp.sample_metadata
     elif axis == 1:
         x = exp.feature_metadata
+    # convert to string type because nan values, if they exist in the column,
+    # will fail `np.unique`
     values = x[field].astype(str).values
     unique, counts = np.unique(values, return_counts=True)
     if num_keep is None:
