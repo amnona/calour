@@ -2,6 +2,8 @@ from logging import getLogger
 import ipywidgets
 from IPython.display import display, clear_output
 
+import matplotlib
+
 from .plotgui import PlotGUI
 
 
@@ -19,6 +21,8 @@ class PlotGUI_Jupyter(PlotGUI):
     '''
     def __init__(self, *kargs, **kwargs):
         super().__init__(*kargs, **kwargs)
+        if matplotlib.get_backend() != 'nbAgg':
+            logger.warning('You need to set up jupyter notebook with `%matplotlib notebook`')
 
     def __call__(self):
         super().__call__()
@@ -31,8 +35,8 @@ class PlotGUI_Jupyter(PlotGUI):
             value=0, placeholder='Abundance', description='Abundance', layout=layout)
         self._ipyw_selected = ipywidgets.Label('0 features are selected')
         # display selected samples/features
-        display(ipywidgets.VBox(
-            [self._ipyw_selected, self._ipyw_sid, self._ipyw_fid, self._ipyw_abund]))
+        display(self._ipyw_selected)
+        display(ipywidgets.HBox([self._ipyw_sid, self._ipyw_fid, self._ipyw_abund]))
 
         self._ipyw_scol = ipywidgets.Dropdown(
             options=self.exp.sample_metadata.columns.tolist(), width='10%')
@@ -65,7 +69,8 @@ class PlotGUI_Jupyter(PlotGUI):
         display(ipywidgets.HBox([print_axes_lim, save_selection, annotate_selection]))
 
         # display annotation for the selection
-        self._ipyw_annt = ipywidgets.HTML('no annotation found')
+        self._ipyw_annt = ipywidgets.HTML(
+            'no annotation found', layout=ipywidgets.Layout(height='100px', overflow_y='auto'))
         # self._ipyw_annt.layout.overflow = 'auto'
         # self._ipyw_annt.layout.overflow_x = 'auto'
         # self._ipyw_annt.layout.max_height = '50px'

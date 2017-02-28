@@ -93,7 +93,7 @@ class Database(ABC):
             empty if ok, otherwise the error encountered
         '''
         logger.debug('Generic function for add_annotations')
-        return 'Not implemented'
+        raise NotImplemented
 
     def delete_annotation(self, annotation_details):
         '''Delete an annotation from the database (if allowed)
