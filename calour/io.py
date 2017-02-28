@@ -136,8 +136,9 @@ def _read_table(f, encoding=None):
     -------
     pandas.DataFrame with index set to first column (as str)
     '''
-    table = pd.read_table(f, sep='\t', encoding=encoding)
+    table = pd.read_table(f, sep='\t', encoding=encoding, dtype={'#SampleID': str})
     table.fillna('na', inplace=True)
+    table[table.columns[0]] = table[table.columns[0]].astype(str)
     table.set_index(table.columns[0], drop=False, inplace=True)
     # make sure the sample ID is string-type
     table.index = table.index.astype(np.str)
