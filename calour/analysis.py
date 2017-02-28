@@ -61,7 +61,8 @@ def correlation(exp, field, method='spearman', transform='rankdata', numperm=100
         data = np.delete(data, nanpos, axis=1)
     # find the significant features
     keep, odif, pvals = dsfdr.dsfdr(data, labels, method=method, transform_type=transform, alpha=alpha, numperm=numperm, fdr_method=fdr_method)
-    logger.info('method %s for field %s. Positive correlated features : %d. Negative correlated features : %d. total %d' % (method, field, np.sum(odif[keep] > 0), np.sum(odif[keep] < 0), np.sum(keep)))
+    logger.info('method %s for field %s. Positive correlated features : %d. Negative correlated features : %d. total %d'
+                % (method, field, np.sum(odif[keep] > 0), np.sum(odif[keep] < 0), np.sum(keep)))
     return _new_experiment_from_pvals(exp, keep, odif, pvals)
 
 
