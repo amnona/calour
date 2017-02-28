@@ -224,6 +224,8 @@ def read_taxa(data_file, sample_metadata_file=None,
 
     if 'taxonomy' in exp.feature_metadata.columns:
         exp.feature_metadata['taxonomy'] = _get_taxonomy_string(exp)
+    else:
+        exp.feature_metadata['taxonomy'] = 'NA'
 
     if filter_orig_reads is not None:
         exp.filter_by_data('sum_abundance', cutoff=filter_orig_reads, inplace=True)
