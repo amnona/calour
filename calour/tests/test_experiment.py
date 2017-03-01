@@ -170,6 +170,30 @@ class ExperimentTests(Tests):
         self.assertIsInstance(df, pd.SparseDataFrame)
         npt.assert_array_almost_equal(df.to_dense().values, data)
 
+    def test_from_pands(self):
+        df = self.test1.to_pandas(sparse=False)
+        res = ca.Experiment.from_pandas(df)
+        self.assertIsInstance(res, ca.Experiment)
+        npt.assert_array_equal(res.feature_metadata.index.values, self.test1.feature_metadata.index.values)
+        npt.assert_array_equal(res.sample_metadata.index.values, self.test1.sample_metadata.index.values)
+        npt.assert_array_equal(res.get_data(sparse=False), self.test1.get_data(sparse=False))
+
+    def test_from_pandas_with_experiment(self):
+        df = self.test1.to_pandas(sparse=False)
+        res = ca.Experiment.from_pandas(df, self.test1)
+        assert_experiment_equal(res, self.test1)
+
+    def test_from_pandas_reorder(self):
+        df = self.test1.to_pandas(sparse=False)
+        # let's reorder the dataframe
+        df = df.sort_values(self.test1.feature_metadata.index.values[10])
+        df = df.sort_values(df.index.values[0], axis=1)
+        res = ca.Experiment.from_pandas(df, self.test1)
+        # we need to reorder the original experiment
+        exp = self.test1.sort_by_data(subset=[10], key='mean')
+        exp = exp.sort_by_data(subset=[0], key='mean', axis=1)
+        assert_experiment_equal(res, exp)
+
 
 if __name__ == "__main__":
     main()

@@ -323,6 +323,42 @@ class Experiment:
             df = pd.DataFrame(self.data, index=ind, columns=cols, copy=True)
         return df
 
+    @classmethod
+    def from_pandas(cls, df, exp=None):
+        '''Convert a Pandas DataFrame into an experiment
+        Can use an existing calour Experimebt (exp) (if supplied) to obtain feature and sample metadata.
+        Note currently only works with non-sparse DataFrame
+        Parameters
+        ----------
+        df : Pandas.DataFrame
+            The dataframe to use. should contain samples in rows, features in columns.
+            Index values will be used for the sample_metadata index and column names will be used for feature_metadata index
+        exp : Experiment (optional)
+            If not None, use sample and feature metadata from the experiment
+
+        Returns
+        -------
+        ``Experiment`` with non-sparse data
+        '''
+        if exp is None:
+            sample_metadata = pd.DataFrame(index=df.index)
+            sample_metadata['id'] = sample_metadata.index
+            feature_metadata = pd.DataFrame(index=df.columns)
+            feature_metadata['id'] = feature_metadata.index
+            exp_metadata = {}
+            description = 'From Pandas DataFrame'
+        else:
+            description = exp.description + ' From Pandas'
+            exp_metadata = exp.exp_metadata
+            sample_metadata = exp.sample_metadata.loc[df.index.values, ]
+            feature_metadata = exp.feature_metadata.loc[df.columns.values, ]
+            cls = exp.__class__
+
+        # print(sample_metadata)
+        newexp = cls(df.values, sample_metadata, feature_metadata,
+                     exp_metadata=exp_metadata, description=description, sparse=False)
+        return newexp
+
 
 def add_functions(cls,
                   modules=['.io', '.sorting', '.filtering', '.analysis',
