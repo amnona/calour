@@ -132,6 +132,10 @@ class Experiment:
             setattr(result, k, deepcopy(v, memo))
         return result
 
+    def copy(self):
+        newexp = deepcopy(self)
+        return newexp
+
     @staticmethod
     def _convert_axis_name(func):
         '''Convert str value of axis to 0/1.

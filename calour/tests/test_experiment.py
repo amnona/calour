@@ -112,6 +112,10 @@ class ExperimentTests(Tests):
         exp = deepcopy(self.test1)
         assert_experiment_equal(exp, self.test1)
 
+    def test_copy(self):
+        exp = self.test1.copy()
+        assert_experiment_equal(exp, self.test1)
+
     def test_get_data_default(self):
         # default - do not modify the data
         exp = deepcopy(self.test1)
