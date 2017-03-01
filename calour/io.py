@@ -138,6 +138,7 @@ def _read_table(f, encoding=None):
     '''
     table = pd.read_table(f, sep='\t', encoding=encoding, dtype={'#SampleID': str})
     table.fillna('na', inplace=True)
+    # in case the first column is not labelled #SampleID
     table[table.columns[0]] = table[table.columns[0]].astype(str)
     table.set_index(table.columns[0], drop=False, inplace=True)
     # make sure the sample ID is string-type

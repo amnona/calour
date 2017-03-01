@@ -109,12 +109,20 @@ class ExperimentTests(Tests):
     def test_copy_experiment(self):
         exp = copy(self.test1)
         assert_experiment_equal(exp, self.test1)
+        self.assertIsNot(exp, self.test1)
+
+    def test_deep_copy_experiment(self):
         exp = deepcopy(self.test1)
         assert_experiment_equal(exp, self.test1)
+        self.assertIsNot(exp, self.test1)
 
     def test_copy(self):
         exp = self.test1.copy()
         assert_experiment_equal(exp, self.test1)
+        self.assertIsNot(exp, self.test1)
+        # make sure it is a deep copy - not sharing the data
+        exp.data[0, 0] = exp.data[0, 0] + 1
+        self.assertNotEqual(exp.data[0, 0], self.test1.data[0, 0])
 
     def test_get_data_default(self):
         # default - do not modify the data

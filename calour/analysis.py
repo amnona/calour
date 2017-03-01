@@ -19,7 +19,7 @@ from . import dsfdr
 logger = getLogger(__name__)
 
 
-def correlation(exp, field, method='spearman', transform='rankdata', numperm=1000, alpha=0.1, fdr_method='dsfdr'):
+def correlation(exp, field, method='spearman', nonzero=False, transform='rankdata', numperm=1000, alpha=0.1, fdr_method='dsfdr'):
     '''Find features with correlation to a numeric metadata field
     With permutation based p-values and multiple hypothesis correction
 
@@ -32,9 +32,12 @@ def correlation(exp, field, method='spearman', transform='rankdata', numperm=100
         the method to use for the t-statistic test. options:
         'spearman' : spearman correlation (numeric)
         'pearson' : pearson correlation (numeric)
-        'nonzerospearman' : spearman correlation only non-zero entries (numeric)
-        'nonzeropearson' : pearson correlation only non-zero entries (numeric)
         function : use this function to calculate the t-statistic (input is data,labels, output is array of float)
+    nonzero : bool (optional)
+        True to calculate the correlation only for samples where the feature is present (>0).
+        False (default) to calculate the correlation over all samples
+        Note: setting nonzero to True slows down the calculation
+        Note: can be set to True only using 'spearman' or 'pearson', not using a custom function
     transform : str or None
         transformation to apply to the data before caluculating the statistic
         'rankdata' : rank transfrom each OTU reads
@@ -49,7 +52,7 @@ def correlation(exp, field, method='spearman', transform='rankdata', numperm=100
     Returns
     -------
     newexp : calour.Experiment
-        The experiment with only significant (FDR<=maxfval) difference, sorted according to difference
+        The experiment with only significant (FDR<=maxfval) correlated features, sorted according to correlation size
     '''
     data = exp.get_data(copy=True, sparse=False).transpose()
     labels = pd.to_numeric(exp.sample_metadata[field], errors='coerce').values
@@ -59,6 +62,14 @@ def correlation(exp, field, method='spearman', transform='rankdata', numperm=100
         logger.warn('NaN values encountered in labels for correlation. Ignoring these samples')
         labels = np.delete(labels, nanpos)
         data = np.delete(data, nanpos, axis=1)
+    # change the method if we have nonzero
+    if nonzero:
+        if method == 'spearman':
+            method = 'nonzerospearman'
+        elif method == 'pearson':
+            method = 'nonzeropearson'
+        else:
+            raise ValueError('Cannot use nonzero=True on methods except "pearson" or "spearman"')
     # find the significant features
     keep, odif, pvals = dsfdr.dsfdr(data, labels, method=method, transform_type=transform, alpha=alpha, numperm=numperm, fdr_method=fdr_method)
     logger.info('method %s for field %s. Positive correlated features : %d. Negative correlated features : %d. total %d'
@@ -66,7 +77,7 @@ def correlation(exp, field, method='spearman', transform='rankdata', numperm=100
     return _new_experiment_from_pvals(exp, keep, odif, pvals)
 
 
-def diff_abundance(exp, field, val1=None, val2=None, method='meandiff', transform='rankdata', numperm=1000, alpha=0.1, fdr_method='dsfdr'):
+def diff_abundance(exp, field, val1, val2=None, method='meandiff', transform='rankdata', numperm=1000, alpha=0.1, fdr_method='dsfdr'):
     '''
     test the differential expression between 2 groups (val1 and val2 in field field)
     using permutation based fdr (dsfdr)
@@ -77,12 +88,10 @@ def diff_abundance(exp, field, val1=None, val2=None, method='meandiff', transfor
     exp: calour.Experiment
     field: str
         The field to test by
-    val1: str or list of str or None (optional)
+    val1: str or list of str
         The values for the first group.
-        Can be None if doing a correlation test.
     val1: str or list of str or None (optional)
-        None (default) to compare to all other samples not in val1
-        ignored if doing a correlation test.
+        None (default) to compare to all other samples (not in val1)
     method : str or function
         the method to use for the t-statistic test. options:
         'meandiff' : mean(A)-mean(B) (binary)

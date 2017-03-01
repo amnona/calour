@@ -116,25 +116,8 @@ class Experiment:
     def __ne__(self, other):
         return not (self == other)
 
-    def __copy__(self):
-        '''Return a copy of Experiment'''
-        cls = self.__class__
-        result = cls.__new__(cls)
-        result.__dict__.update(self.__dict__)
-        return result
-
-    def __deepcopy__(self, memo):
-        '''Return a deep copy of Experiment. '''
-        cls = self.__class__
-        result = cls.__new__(cls)
-        memo[id(self)] = result
-        for k, v in self.__dict__.items():
-            setattr(result, k, deepcopy(v, memo))
-        return result
-
     def copy(self):
-        newexp = deepcopy(self)
-        return newexp
+        return deepcopy(self)
 
     @staticmethod
     def _convert_axis_name(func):
