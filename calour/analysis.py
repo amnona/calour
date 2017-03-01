@@ -176,7 +176,25 @@ def diff_abundance_kw(exp, field, transform='rankdata', numperm=1000, alpha=0.1,
 
 
 def _new_experiment_from_pvals(exp, keep, odif, pvals):
-    '''
+    '''Combine the pvalues and effect size into a new experiment.
+    Keep only the significant features, sort the features by the effect size
+
+    Parameters
+    ----------
+    exp : ``Experiment``
+        The experiment being analysed
+    keep : np.array of bool
+        One entry per exp feature. True for the features which are significant (following FDR correction)
+    odif : np.array of float
+        One entry per exp feature. The effect size per feature (can be positive or negative)
+    pval : np.array of float
+        One entry per exp feature. The p-value associated with each feature (not FDR corrected)
+
+    Returns
+    -------
+    ``Experiment``
+    Containing only significant features, sorted by effect size.
+    Each feature contains 2 new metadata fields: _calour_diff_abundance_pval, _calour_diff_abundance_effect
     '''
     keep = np.where(keep)
     if len(keep[0]) == 0:
