@@ -12,6 +12,7 @@ from copy import copy, deepcopy
 import numpy as np
 import pandas as pd
 import numpy.testing as npt
+import pandas.util.testing as pdt
 from scipy import sparse
 
 from calour._testing import Tests, assert_experiment_equal
@@ -206,6 +207,12 @@ class ExperimentTests(Tests):
         exp = exp.sort_by_data(subset=[0], key='mean', axis=1)
         assert_experiment_equal(res, exp)
 
+    def test_from_pandas_round_trip(self):
+        data = np.array([[1, 2], [3, 4]])
+        df = pd.DataFrame(data, index=['s1', 's2'], columns=['AAA', 'CCC'], copy=True)
+        exp = ca.Experiment.from_pandas(df)
+        res = exp.to_pandas()
+        pdt.assert_frame_equal(res, df)
 
 if __name__ == "__main__":
     main()
