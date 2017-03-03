@@ -51,6 +51,8 @@ class PlotGUI_QT5(PlotGUI):
         super().__call__()
         try:
             self.app_window.show()
+            self.app_window.activateWindow()
+            self.app_window.raise_()
             self.app.exec_()
         finally:
             # clean up when the qt app is closed
