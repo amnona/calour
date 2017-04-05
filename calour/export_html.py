@@ -45,7 +45,7 @@ def export_html(exp, sample_field=None, feature_field=False, title=None,
                 output_file='out', html_template=None, **kwargs):
     '''Export an interactive html heatmap for the experiment.
 
-    Creates a standalone html file with interactive d3.js heatmap of theexperiment and interface to dbBact.
+    Creates a standalone html file with interactive d3.js heatmap of the experiment and interface to dbBact.
 
     Parameters
     ----------
