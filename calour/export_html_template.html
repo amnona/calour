@@ -346,9 +346,11 @@
             .attr('x1', 0).attr('y1', Math.round(posy) + 0.5)
             .attr('x2', samples.length).attr('y2', Math.round(posy) + 0.5);
 
-        var ctax = yticklabels[cy];
         var cid = ids[cy];
         var csamp = samples[cx];
+        var ctax = yticklabels[cy].split(';').map(function(e) {
+          return '<a href="https://en.wikipedia.org/wiki/' + e + '" target="_blank">' + e + '</a>'
+        }).join('; ');
         $('#taxonomy').html(ctax);
         $('#sampleid').html(csamp);
         // Get dbBact annotations for selection
@@ -361,7 +363,7 @@
           success: function(data) {
               var atext = '';
               var clink = 'http://dbbact.org/sequence_annotations/' + cid;
-              var ctext = '<a href="' + clink + '" target="_blank">dbBact Summary</a><br>';
+              var ctext = '<p><a href="' + clink + '" target="_blank">dbBact Summary</a></p>';
               atext += ctext;
               for (i = 0; i < data.annotations.length; i++) {
                   clink = 'http://dbbact.org/annotation_info/' + data.annotations[i].annotationid.toString();
@@ -379,32 +381,59 @@
     });
   </script>
 </head>
-<body>
+<body style="height: 100vh;">
   <div id="div-title" style="text-align: center">
-    <h1><span id="title_text">Experiment</span></h1>
-    Sorted by field <span id='field_name'> NA </span>
+    &nbsp;
   </div>
-
-  <div id="div-heatmap" style="width: 60%; height: 400px; border: 1px solid red; float: left; overflow: hidden;">
-    <button id="reset" class="btn btn-default btn-xs">Reset</button>
-    <button id="zoomplus" class="btn btn-default btn-xs">+</button>
-    <button id="zoomminus" class="btn btn-default btn-xs">-</button>
-    <button id="moveup" class="btn btn-default btn-xs">&uarr;</button>
-    <button id="movedown" class="btn btn-default btn-xs">&darr;</button>
-    <svg width="750" height="500"></svg>
-  </div>
-
-  <div id="div-annotation" style="margin-left: 10px; width: 34%; height: 400px; border: 1px solid blue; display: inline-block; overflow: scroll;white-space: nowrap;">
+  <div id="div-annotation" class="panel panel-default" style="float: right; margin: 5px; width: 400px; height: auto; overflow: auto; white-space: nowrap;">
     <!--Here goes the annotations!-->
-    <b>DBBact annotations</b>
-    <p id="p-annotation">Click on heatmap bacteria to see annotations</p>
+    <div class="panel-heading">
+      <b>dbBact annotations</b>
+    </div>
+    <div class="panel-body">
+      <p id="p-annotation">Click on heatmap to see annotations</p>
+    </div>
   </div>
 
-  <div id="div-selection" style="float:none; margin-top: 10px; border: 1px solid grey">
-    <!--Here goes the selection!-->
-    <p><b>Taxonomy:</b><span id="taxonomy">NA</span></p>
-    <p>SampleID:<span id="sampleid">NA</span></p>
-    <p>Use mouse or -/= for zooming bacteria, shift+mouse for zooming samples, arrow keys to scroll up/down in heatmap <span style="float: right"> For more analysis options, download <a href='https://github.com/amnona/calour' target='_blank'>Calour</a></span></p>
+  <div id="div-heatmap" class="panel panel-default" style="margin: 5px; width: auto; height: 100%; overflow: hidden;">
+    <div class="panel-heading">
+      <!--span><b><label id="title_text"></label></b>&nbsp;&nbsp;sorted by field&nbsp;<label id="title_text"></label></span-->
+      <b><span id="title_text">Experiment</span></b>
+      (sorted by field: <span id='field_name'> NA </span>)
+      <span style="float: right;">
+        <button id="reset" class="btn btn-default btn-xs">Reset</button>
+        <button id="zoomplus" class="btn btn-default btn-xs">+</button>
+        <button id="zoomminus" class="btn btn-default btn-xs">-</button>
+        <button id="moveup" class="btn btn-default btn-xs">&uarr;</button>
+        <button id="movedown" class="btn btn-default btn-xs">&darr;</button>
+        <button id="btn-help" class="btn btn-default btn-xs" onclick="$('#div-help').toggle();">Help</button>
+      </span>
+    </div>
+    <div class="panel-body">
+      <!--svg width="750" height="500"></svg-->
+      <svg></svg>
+    </div>
+  </div>
+
+  <div id="div-selection" class="panel panel-default" style="float: left; width: 100%; margin: 5px; bottom: 0px;">
+    <div class="panel-body">
+    	<!--Here goes the selection!-->
+    	<span style="display: inline-block; overflow: hidden;"><b>Sample:&nbsp;&nbsp;</b></span>
+    	<span id="sampleid" style="display: inline-block; width: 150px; overflow: auto;">NA</span>
+    	<span style="display: inline-block; overflow: hidden;">&nbsp;&nbsp;<b>Taxonomy:&nbsp;&nbsp;</b></span>
+    	<span id="taxonomy" style="display: inline-block; width: auto; overflow: auto;">NA</span>
+    </div>
+  </div>
+
+  <div id="div-help" class="panel panel-info" style="display: none; position: fixed; left: 50%; width: 400px; margin-left: -200px; top: 200px; box-shadow: 10px 10px 5px rgba(0,0,0,0.5);">
+    <div class="panel-heading">
+    	Help
+    	<span style="float: right;"><button class="btn btn-default btn-xs" onclick="$('#div-help').hide();">&times;</button></span>
+    </div>
+    <div class="panel-body">
+      <p>Use mouse or -/= for zooming bacteria, shift+mouse for zooming samples, arrow keys to scroll up/down in heatmap.</p>
+      <p>For more analysis options, download <a href='https://github.com/amnona/calour' target='_blank'>Calour</a>.</p>
+    </div>
   </div>
 </body>
 </html>
