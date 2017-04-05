@@ -59,18 +59,16 @@
       //***********************************************************
 
       var yaxiswidth = 100;
-      var xaxisheight = 50;
+      var xaxisheight = 20;
 
       // set the title
       $('#field_name').html(field_name);
       $('#title_text').html(title_text);
 
-      var heatmap_div = d3.select('#div-heatmap').node();
-      div_w = heatmap_div.getBoundingClientRect().width;
-      div_h = heatmap_div.getBoundingClientRect().height;
-
       var svg = d3.select('svg');
-      var width = +div_w, height = +div_h;
+
+      var width = $('#div-heatmap').width();
+      var height = $('#div-heatmap').height();
 
       // available display for the heatmap (without axes)
       var hwidth = width - yaxiswidth;
@@ -381,11 +379,11 @@
     });
   </script>
 </head>
-<body style="height: calc(100vh - 100px)">
+<body style="height: calc(100vh - 50px)">
   <div id="div-title" style="text-align: center">
     &nbsp;
   </div>
-  <div id="div-annotation" class="panel panel-default" style="float: right; margin: 5px; width: 400px; height: auto; overflow: auto; white-space: nowrap;">
+  <div id="div-annotation" class="panel panel-default" style="float: right; margin: 5px; width: 360px; height: auto; overflow: auto; white-space: nowrap;">
     <!--Here goes the annotations!-->
     <div class="panel-heading">
       <b>dbBact annotations</b>
@@ -395,8 +393,8 @@
     </div>
   </div>
 
-  <div id="div-heatmap" class="panel panel-default" style="margin: 5px; width: auto; height: 100%; overflow: hidden;">
-    <div class="panel-heading">
+  <div class="panel panel-default" style="margin: 5px; width: auto; height: 100%; overflow: hidden;">
+    <div id="div-title" class="panel-heading">
       <b><span id="title_text">Experiment</span></b>
       (sorted by field: <b><span id='field_name'> NA </span></b>)
       <span style="float: right;">
@@ -408,19 +406,15 @@
         <button id="btn-help" class="btn btn-default btn-xs" onclick="$('#div-help').toggle();">Help</button>
       </span>
     </div>
-    <div class="panel-body">
-      <!--svg width="750" height="500"></svg-->
-      <svg></svg>
+    <div id="div-heatmap" class="panel-body" style="height: calc(100% - 85px);">
+      <svg id="heatmap" style="width: 100%; height: 100%;)"></svg>
     </div>
-  </div>
-
-  <div id="div-selection" class="panel panel-default" style="float: left; width: calc(100% - 10px); margin: 5px; bottom: 0px;">
-    <div class="panel-body">
-    	<!--Here goes the selection!-->
-    	<span style="display: inline-block; overflow: hidden;"><b>Sample:&nbsp;&nbsp;</b></span>
-    	<span id="sampleid" style="display: inline-block; width: 150px; overflow: auto;">NA</span>
-    	<span style="display: inline-block; overflow: hidden;">&nbsp;&nbsp;<b>Taxonomy:&nbsp;&nbsp;</b></span>
-    	<span id="taxonomy" style="display: inline-block; width: auto; overflow: auto;">NA</span>
+    <div id="div-selection" class="panel-footer">
+      <!--Here goes the selection!-->
+      <span style="display: inline-block; overflow: hidden;"><b>Sample:&nbsp;&nbsp;</b></span>
+      <span id="sampleid" style="display: inline-block; width: 150px; overflow: auto;">NA</span>
+      <span style="display: inline-block; overflow: hidden;">&nbsp;&nbsp;<b>Taxonomy:&nbsp;&nbsp;</b></span>
+      <span id="taxonomy" style="display: inline-block; width: auto; overflow: auto;">NA</span>
     </div>
   </div>
 
