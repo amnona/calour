@@ -381,7 +381,7 @@
     });
   </script>
 </head>
-<body style="height: 100vh;">
+<body style="height: calc(100vh - 100px)">
   <div id="div-title" style="text-align: center">
     &nbsp;
   </div>
@@ -397,9 +397,8 @@
 
   <div id="div-heatmap" class="panel panel-default" style="margin: 5px; width: auto; height: 100%; overflow: hidden;">
     <div class="panel-heading">
-      <!--span><b><label id="title_text"></label></b>&nbsp;&nbsp;sorted by field&nbsp;<label id="title_text"></label></span-->
       <b><span id="title_text">Experiment</span></b>
-      (sorted by field: <span id='field_name'> NA </span>)
+      (sorted by field: <b><span id='field_name'> NA </span></b>)
       <span style="float: right;">
         <button id="reset" class="btn btn-default btn-xs">Reset</button>
         <button id="zoomplus" class="btn btn-default btn-xs">+</button>
@@ -415,7 +414,7 @@
     </div>
   </div>
 
-  <div id="div-selection" class="panel panel-default" style="float: left; width: 100%; margin: 5px; bottom: 0px;">
+  <div id="div-selection" class="panel panel-default" style="float: left; width: calc(100% - 10px); margin: 5px; bottom: 0px;">
     <div class="panel-body">
     	<!--Here goes the selection!-->
     	<span style="display: inline-block; overflow: hidden;"><b>Sample:&nbsp;&nbsp;</b></span>
