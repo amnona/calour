@@ -10,7 +10,6 @@ from logging import getLogger
 from abc import ABC
 
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 
@@ -35,22 +34,23 @@ class PlotGUI(ABC):
     zoom_scale : numeric
         the scaling factor for zooming
     scroll_offset : numeric (optional)
-        The amount of bacteria/samples to scroll when arrow key pressed
+        The amount of columns/rows to scroll when arrow key pressed
         0 (default) to scroll one full screen every keypress
-        >0 : scroll than constant amount of bacteria per keypress
+        >0 : scroll than constant number of columns/rows per keypress
     figure : ``matplotlib.figure.Figure``
-        The figure where the heatmap will be plotted into. It creates one by default.
-    axes : matplotlib axes obtained from ``figure``.
+        The figure where the heatmap and other axes will be plotted into.
+    axes : the matplotlib axes from ``figure`` to plot heatmap into.
     databases : list
-        the database to interact with
+        the databases to interact with
 
     Parameters
     ----------
-    exp :
-    zoom_scale :
-    scroll_offset :
+    exp : the ``Experiment`` object associated with this GUI
+    zoom_scale : the scaling factor for zooming
+    scroll_offset : The amount of columns/rows to scroll when arrow key pressed
+    databases : the databases to interact with
     '''
-    def __init__(self, exp, zoom_scale=2, scroll_offset=0, databases=None):
+    def __init__(self, exp, zoom_scale=2, scroll_offset=0, databases=None, tree_size=0):
         # the Experiment being plotted
         self.exp = exp
         # how much zooming in on key press
@@ -68,18 +68,43 @@ class PlotGUI(ABC):
             self.databases = []
         # the default database used when annotating features
         self._annotation_db = None
-        # create the figure to plot the heatmap into
-        self._set_figure(plt.figure())
 
-    def _set_figure(self, figure):
-        self.figure = figure
-        gs = GridSpec(2, 2, width_ratios=[12, 1], height_ratios=[1, 12])
-        hm_ax = self.figure.add_subplot(gs[2])
-        self.xax = self.figure.add_subplot(gs[0], sharex=hm_ax)
+    def _set_figure(self, figure=None, tree_size=0):
+        import matplotlib.pyplot as plt
+        if figure is None:
+            self.figure = plt.figure()
+        else:
+            self.figure = figure
+        if tree_size == 0:
+            gs = GridSpec(2, 2, width_ratios=[12, 1], height_ratios=[1, 12])
+            i = 0
+        else:
+            gs = GridSpec(2, 3, width_ratios=[12, 1, tree_size], height_ratios=[1, 12])
+            i = 2
+        hm_ax = self.figure.add_subplot(gs[2 + i])
+        self.xax = self.figure.add_subplot(gs[0 + i], sharex=hm_ax)
         self.xax.axis('off')
-        self.yax = self.figure.add_subplot(gs[3], sharey=hm_ax)
+        self.yax = self.figure.add_subplot(gs[3 + i], sharey=hm_ax)
         self.yax.axis('off')
         self.axes = hm_ax
+        if tree_size != 0:
+            tree_ax = self.figure.add_subplot(gs[3], sharey=hm_ax)
+            self.tree_axes = tree_ax
+
+    def save_figure(self, *args, **kwargs):
+        '''Save the figure to file.
+
+        Parameters
+        ----------
+        args, kwargs: tuple, dict
+            arguments passing to ``matplotlib.Figure.savefig`` function.
+        '''
+        try:
+            # create color bar for the heatmap before saving
+            self.figure.colorbar(self.axes.images[0])
+        except IndexError:
+            logger.warning('no heatmap are plotted')
+        self.figure.savefig(*args, **kwargs)
 
     def get_selection_info(self):
         '''Get the current selection information
@@ -115,12 +140,12 @@ class PlotGUI(ABC):
                 cannt = cdatabase.get_seq_annotation_strings(feature)
                 if len(cannt) == 0:
                     cannt = [[{'annotationtype': 'not found'},
-                              'No annotation found in database %s' % cdatabase.get_name()]]
+                              'No annotation found in database %s' % cdatabase.database_name]]
                 else:
                     for cannotation in cannt:
                         cannotation[0]['_db_interface'] = cdatabase
             except:
-                cannt = 'error connecting to db %s' % cdatabase.get_name()
+                cannt = 'error connecting to db %s' % cdatabase.database_name
             annt.extend(cannt)
         return annt
 

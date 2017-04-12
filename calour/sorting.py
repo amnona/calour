@@ -33,7 +33,7 @@ from scipy import cluster, spatial
 
 from . import Experiment
 from .transforming import log_n, transform, scale
-
+from .util import _argsort
 
 logger = getLogger(__name__)
 
@@ -71,7 +71,7 @@ def sort_centroid(exp, transform=log_n, inplace=False, **kwargs):
     if transform is None:
         data = exp.data
     else:
-        logger.debug('tansforming data using %r' % transform)
+        logger.debug('transforming data using %r' % transform)
         newexp = deepcopy(exp)
         data = transform(newexp, **kwargs).data
     data = data.T
@@ -195,7 +195,7 @@ def sort_by_metadata(exp, field, axis=0, inplace=False):
         x = exp.feature_metadata
     else:
         raise ValueError('unknown axis %s' % axis)
-    idx = np.argsort(x[field].values, kind='mergesort')
+    idx = _argsort(x[field].values)
     return exp.reorder(idx, axis=axis, inplace=inplace)
 
 

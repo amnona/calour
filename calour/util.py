@@ -27,6 +27,8 @@ import inspect
 import configparser
 from pkg_resources import resource_filename
 from collections import Iterable
+from numbers import Real
+
 import scipy
 
 
@@ -288,15 +290,16 @@ def get_config_value(key, fallback=None, section='DEFAULT', config_file_name=Non
 def set_log_level(level):
     '''Set the debug level for calour
 
+    You can see the logging levels at:
+    https://docs.python.org/3.5/library/logging.html#levels
+
     Parameters
     ----------
-    level : int
+    level : int or str
         10 for debug, 20 for info, 30 for warn, etc.
+        It is passing to ``logger.setLevel``.
     '''
-
     clog = getLogger('calour')
-    if level < 10:
-        level = 10
     clog.setLevel(level)
 
 
@@ -317,3 +320,37 @@ def _to_list(x):
     if isinstance(x, Iterable):
         return x
     return [x]
+
+
+def _argsort(values):
+    '''Sort a sequence of values of heterogeneous variable types.
+
+    Used to overcome the problem when using numpy.argsort on a pandas
+    series values with missing values
+
+    Examples
+    --------
+    >>> l = [10, 'b', 2.5, 'a']
+    >>> idx = _argsort(l)
+    >>> idx
+    [2, 0, 3, 1]
+    >>> l_sorted = [l[i] for i in idx]
+    >>> l_sorted
+    [2.5, 10, 'a', 'b']
+
+    Parameters
+    ----------
+    values : iterable
+        the values to sort
+
+    Returns
+    -------
+    list of ints
+        the positions of the sorted values
+
+    '''
+    # convert all numbers to float otherwise int will be sorted different place
+    values = [float(x) if isinstance(x, Real) else x for x in values]
+    # make values ordered by type and sort inside each var type
+    values = [(str(type(x)), x) for x in values]
+    return sorted(range(len(values)), key=values.__getitem__)
