@@ -49,6 +49,7 @@ class PlotGUI(ABC):
     zoom_scale : the scaling factor for zooming
     scroll_offset : The amount of columns/rows to scroll when arrow key pressed
     databases : the databases to interact with
+    tree_size : int (>= 0). the width of the axes to plot a tree.
     '''
     def __init__(self, exp, zoom_scale=2, scroll_offset=0, databases=None, tree_size=0):
         # the Experiment being plotted
@@ -77,19 +78,21 @@ class PlotGUI(ABC):
             self.figure = figure
         if tree_size == 0:
             gs = GridSpec(2, 2, width_ratios=[12, 1], height_ratios=[1, 12])
-            i = 0
+            hm_ax = self.figure.add_subplot(gs[2])
+            self.xax = self.figure.add_subplot(gs[0], sharex=hm_ax)
+            self.xax.axis('off')
+            self.yax = self.figure.add_subplot(gs[3], sharey=hm_ax)
+            self.yax.axis('off')
+            self.axes = hm_ax
         else:
-            gs = GridSpec(2, 3, width_ratios=[12, 1, tree_size], height_ratios=[1, 12])
-            i = 2
-        hm_ax = self.figure.add_subplot(gs[2 + i])
-        self.xax = self.figure.add_subplot(gs[0 + i], sharex=hm_ax)
-        self.xax.axis('off')
-        self.yax = self.figure.add_subplot(gs[3 + i], sharey=hm_ax)
-        self.yax.axis('off')
-        self.axes = hm_ax
-        if tree_size != 0:
-            tree_ax = self.figure.add_subplot(gs[3], sharey=hm_ax)
-            self.tree_axes = tree_ax
+            gs = GridSpec(2, 3, width_ratios=[tree_size, 12, 1], height_ratios=[1, 12])
+            hm_ax = self.figure.add_subplot(gs[4])
+            self.xax = self.figure.add_subplot(gs[2], sharex=hm_ax)
+            self.xax.axis('off')
+            self.yax = self.figure.add_subplot(gs[5], sharey=hm_ax)
+            self.yax.axis('off')
+            self.axes = hm_ax
+            self.tree_axes = self.figure.add_subplot(gs[3], sharey=hm_ax)
 
     def save_figure(self, *args, **kwargs):
         '''Save the figure to file.
