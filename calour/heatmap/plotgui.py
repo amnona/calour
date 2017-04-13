@@ -85,14 +85,14 @@ class PlotGUI(ABC):
             self.yax.axis('off')
             self.axes = hm_ax
         else:
-            gs = GridSpec(2, 3, width_ratios=[tree_size, 12, 1], height_ratios=[1, 12])
-            hm_ax = self.figure.add_subplot(gs[4])
-            self.xax = self.figure.add_subplot(gs[2], sharex=hm_ax)
+            gs = GridSpec(2, 3, width_ratios=[12, 1, tree_size], height_ratios=[1, 12])
+            hm_ax = self.figure.add_subplot(gs[3])
+            self.xax = self.figure.add_subplot(gs[0], sharex=hm_ax)
             self.xax.axis('off')
-            self.yax = self.figure.add_subplot(gs[5], sharey=hm_ax)
+            self.yax = self.figure.add_subplot(gs[4], sharey=hm_ax)
             self.yax.axis('off')
             self.axes = hm_ax
-            self.tree_axes = self.figure.add_subplot(gs[3], sharey=hm_ax)
+            self.tree_axes = self.figure.add_subplot(gs[5], sharey=hm_ax)
 
     def save_figure(self, *args, **kwargs):
         '''Save the figure to file.
@@ -346,7 +346,7 @@ class PlotGUI(ABC):
         for cpos in samplepos:
             if cpos not in self.selected_samples:
                 self.selected_samples[cpos] = self.axes.axvline(
-                    x=cpos, color='white', linestyle='dotted')
+                    x=cpos, color='white', linestyle='dotted', alpha=0.5, linewidth=0.5)
                 logger.debug('add sample selection %r' % cpos)
             else:
                 if toggle:
