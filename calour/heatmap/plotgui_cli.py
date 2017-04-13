@@ -7,7 +7,6 @@
 # ----------------------------------------------------------------------------
 
 from .plotgui import PlotGUI
-from matplotlib import pyplot as plt
 
 
 class PlotGUI_CLI(PlotGUI):
@@ -23,5 +22,7 @@ class PlotGUI_CLI(PlotGUI):
 
     def __call__(self):
         '''Run the GUI.'''
+        from matplotlib import pyplot as plt
+
         super().__call__()
         plt.show()
