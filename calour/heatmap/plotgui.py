@@ -93,6 +93,7 @@ class PlotGUI(ABC):
             self.yax.axis('off')
             self.axes = hm_ax
             self.tree_axes = self.figure.add_subplot(gs[5], sharey=hm_ax)
+            self.tree_axes.axis('off')
 
     def save_figure(self, *args, **kwargs):
         '''Save the figure to file.
@@ -355,7 +356,7 @@ class PlotGUI(ABC):
         for cpos in featurepos:
             if cpos not in self.selected_features:
                 self.selected_features[cpos] = self.axes.axhline(
-                    y=cpos, color='white', linestyle='dotted')
+                    y=cpos, color='white', linestyle='dotted', alpha=0.5, linewidth=0.5)
                 logger.debug('add sample selection %r' % cpos)
             else:
                 if toggle:
