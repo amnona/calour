@@ -405,3 +405,105 @@ class SquareDendrogram(RootedDendrogram):
             n.__class__ = SquareDendrogram
         tree.update_geometry(use_lengths=False)
         return tree
+
+
+def _plot_dendrogram(ax_dendrogram, table, edges):
+    """ Plots the actual dendrogram.
+    Parameters
+    ----------
+    ax_dendrogram : matplotlib axes object
+        Contains the matplotlib axes in which the dendrogram will be plotted.
+    table : pd.DataFrame
+        Contain sample/feature labels along with table of values.
+        Rows correspond to samples, and columns correspond to features.
+    edges : pd.DataFrame
+        (x,y) coordinates for edges in the heatmap.
+    """
+    offset = 0.5
+    for i in range(len(edges.index)):
+        row = edges.iloc[i]
+        ax_dendrogram.plot([row.x0, row.x1],
+                           [row.y0-offset, row.y1-offset], '-k')
+    ax_dendrogram.set_ylim([-offset, table.shape[0]-offset])
+    ax_dendrogram.set_yticks([])
+    ax_dendrogram.set_xticks([])
+
+
+def plot_tree(exp, tree, axes):
+    '''Plot a tree into the given axes
+
+    Parameters
+    ----------
+    exp: ``Experiment``
+    tree: skbio.TreeNode
+        The tree to plot
+    axes: matplotlib.Axis
+        The axis where to plot the tree to
+
+    Returns
+    -------
+    ``Experiment``, sckbio.TreeNode
+        both filtered to have common nodes and Experiment reordered to match the tree
+    '''
+    # reorder the tree and exp to match (exp features are sorted according to tree)
+    exp, tree = _match_tips(exp, tree)
+
+    dendrogram_width = 20
+    # get edges from tree
+    t = SquareDendrogram.from_tree(tree)
+    pts = t.coords(width=dendrogram_width, height=exp.shape[1])
+    edges = pts[['child0', 'child1']]
+    edges = edges.dropna(subset=['child0', 'child1'])
+    edges = edges.unstack()
+    edges = pd.DataFrame({'src_node': edges.index.get_level_values(1),
+                          'dest_node': edges.values})
+    edges['x0'] = [pts.loc[n].x for n in edges.src_node]
+    edges['x1'] = [pts.loc[n].x for n in edges.dest_node]
+    edges['y0'] = [pts.loc[n].y for n in edges.src_node]
+    edges['y1'] = [pts.loc[n].y for n in edges.dest_node]
+
+    _plot_dendrogram(axes, exp.get_data().transpose(), edges)
+
+    return exp, tree
+
+
+def _match_tips(exp, tree):
+    """ Returns the contingency table and tree with matched tips.
+    Sorts the columns of the contingency table to match the tips in
+    the tree.  The ordering of the tips is in post-traversal order.
+    If the tree is multi-furcating, then the tree is reduced to a
+    bifurcating tree by randomly inserting internal nodes.
+    The intersection of samples in the contingency table and the
+    tree will returned.
+    Parameters
+    ----------
+    table : pd.DataFrame
+        Contingency table where samples correspond to rows and
+        features correspond to columns.
+    tree : skbio.TreeNode
+        Tree object where the leafs correspond to the features.
+    Returns
+    -------
+    pd.DataFrame :
+        Subset of the original contingency table with the common features.
+    skbio.TreeNode :
+        Sub-tree with the common features.
+    Raises
+    ------
+    ValueError:
+        Raised if `table` and `tree` have incompatible sizes.
+    See Also
+    --------
+    skbio.TreeNode.bifurcate
+    skbio.TreeNode.tips
+    """
+    tips = [x.name for x in tree.tips()]
+    common_tips = list(set(tips) & set(exp.feature_metadata.index.values))
+    _tree = tree.shear(names=common_tips)
+
+    _tree.bifurcate()
+    _tree.prune()
+
+    sorted_features = [n.name for n in _tree.tips()]
+    newexp = exp.filter_ids(sorted_features, axis=1)
+    return newexp, _tree
