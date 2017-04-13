@@ -457,8 +457,8 @@ def plot_tree(exp, tree, axes):
     edges = edges.unstack()
     edges = pd.DataFrame({'src_node': edges.index.get_level_values(1),
                           'dest_node': edges.values})
-    edges['x0'] = [pts.loc[n].x for n in edges.src_node]
-    edges['x1'] = [pts.loc[n].x for n in edges.dest_node]
+    edges['x0'] = [dendrogram_width - pts.loc[n].x for n in edges.src_node]
+    edges['x1'] = [dendrogram_width - pts.loc[n].x for n in edges.dest_node]
     edges['y0'] = [pts.loc[n].y for n in edges.src_node]
     edges['y1'] = [pts.loc[n].y for n in edges.dest_node]
 
