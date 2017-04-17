@@ -26,7 +26,8 @@ install:
   - pip install -r ci/pip_requirements.txt
   - pip install . --no-deps
 script:
-  - WITH_COVERAGE=TRUE make all
+  - python -c 'from PyQt5 import QtCore, QtGui, QtWidgets'
+  - python -c 'from matplotlib import pyplot; from PyQt5 import QtCore, QtGui, QtWidgets'
 notifications:
   webhooks:
     on_success: change
