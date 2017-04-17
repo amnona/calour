@@ -36,7 +36,8 @@ before_script:
   - export DISPLAY=:99.0
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh -e /etc/init.d/xvfb start; fi
 script:
-  - WITH_COVERAGE=TRUE make all
+  - python -c 'from PyQt5 import QtCore, QtGui, QtWidgets'
+  - python -c 'from matplotlib import pyplot; from PyQt5 import QtCore, QtGui, QtWidgets'
 notifications:
   webhooks:
     on_success: change
