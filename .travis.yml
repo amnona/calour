@@ -37,7 +37,8 @@ before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh -e /etc/init.d/xvfb start; fi
 script:
   - mkdir -p ~/.config/matplotlib/
-  - echo -e "backend      : Qt5Agg\nbackend.qt5  : PyQt5" > ~/.config/matplotlib/matplotlibrc
+  - >-
+    echo -e "backend      : Qt5Agg\nbackend.qt5  : PyQt5" > ~/.config/matplotlib/matplotlibrc
   - WITH_COVERAGE=TRUE make all
 notifications:
   webhooks:
