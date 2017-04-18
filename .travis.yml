@@ -38,7 +38,7 @@ before_script:
 script:
   - python -c 'from PyQt5 import QtCore, QtGui, QtWidgets'
   - python -c 'from matplotlib import pyplot; from PyQt5 import QtCore, QtGui, QtWidgets'
-  - export MPLBACKEND="module://Qt5Agg"
+  - export MPLBACKEND="Qt5Agg"
   - python -c 'from matplotlib import pyplot; from PyQt5 import QtCore, QtGui, QtWidgets'
 notifications:
   webhooks:
