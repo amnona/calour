@@ -356,15 +356,14 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         sample_metadata = _read_table(sample_metadata_file, encoding=encoding)
         smid = set(sample_metadata.index)
         sdid = set(sid)
-        intersect = smid & sdid
-        diff = smid - intersect
+        diff = smid - sdid
         if diff:
             logger.warning('the samples are dropped because they have metadata but do not have data: %r' % diff)
-        diff = sdid - intersect
+        diff = sdid - smid
         if diff:
-            logger.warning('the samples are dropped because they have data but do not have metadata: %r' % diff)
-        # use the intersection of feature ids in sample metadata and data
-        sample_metadata = sample_metadata.loc[intersect, ]
+            logger.warning('the samples have data but do not have metadata: %r' % diff)
+        # reorder the sample id to align with biom
+        sample_metadata = sample_metadata.loc[sid, ]
         exp_metadata['map_md5'] = get_file_md5(sample_metadata_file, encoding=encoding)
     else:
         sample_metadata = pd.DataFrame(index=sid)
@@ -375,17 +374,17 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
     if feature_metadata_file is not None:
         # reorder the feature id to align with that from biom table
         feature_metadata = _read_table(feature_metadata_file, encoding=encoding)
-        fmid = set(sample_metadata.index)
-        fdid = set(sid)
-        intersect = fmid & fdid
-        diff = fmid - intersect
+        fmid = set(feature_metadata.index)
+        fdid = set(oid)
+        diff = fmid - fdid
         if diff:
             logger.warning('the features are dropped because they have metadata but do not have data: %r' % diff)
-        diff = fdid - intersect
+        diff = fdid - fmid
         if diff:
-            logger.warning('the features are dropped because they have data but do not have metadata: %r' % diff)
-        # use the intersection of feature ids in feature metadata and data
-        feature_metadata = feature_metadata.loc[intersect, ]
+            logger.warning('the features have data but do not have metadata: %r' % diff)
+        # reorder the sample id to align with biom
+        feature_metadata = feature_metadata.loc[oid, ]
+
     else:
         feature_metadata = pd.DataFrame(index=oid)
         feature_metadata['id'] = oid
