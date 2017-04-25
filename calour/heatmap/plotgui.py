@@ -39,7 +39,10 @@ class PlotGUI(ABC):
         >0 : scroll than constant number of columns/rows per keypress
     figure : ``matplotlib.figure.Figure``
         The figure where the heatmap and other axes will be plotted into.
-    axes : the matplotlib axes from ``figure`` to plot heatmap into.
+    axes : the matplotlib axis from ``figure`` of the heatmap.
+    xax : the matplotlib axis of the sample colorbar
+    yax : the matplotlib axis of the feature colorbar
+    tree_axes : the matplotlib axis of the dendrogram
     databases : list
         the databases to interact with
 
@@ -103,11 +106,11 @@ class PlotGUI(ABC):
         args, kwargs: tuple, dict
             arguments passing to ``matplotlib.Figure.savefig`` function.
         '''
-        try:
-            # create color bar for the heatmap before saving
-            self.figure.colorbar(self.axes.images[0])
-        except IndexError:
-            logger.warning('no heatmap are plotted')
+        # try:
+        #     # create color bar for the heatmap before saving
+        #     self.figure.colorbar(self.axes.images[0])
+        # except IndexError:
+        #     logger.warning('no heatmap are plotted')
         self.figure.savefig(*args, **kwargs)
 
     def get_selection_info(self):

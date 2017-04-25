@@ -187,7 +187,7 @@ def heatmap(exp, sample_field=None, feature_field=False, yticklabels_max=100,
     # plot the heatmap
     image = ax.imshow(data.transpose(), aspect='auto', interpolation='nearest', cmap=cmap, clim=clim)
     if show_legend_colorbar:
-        _figure_color_bar(exp, image, fig, axes=ax, log_scale=(transform == log_n))
+        _figure_color_bar(exp, image, fig, axes=None, log_scale=(transform == log_n))
     # set the initial zoom window if supplied
     if rect is not None:
         ax.set_xlim((rect[0], rect[1]))
