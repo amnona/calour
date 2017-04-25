@@ -87,6 +87,7 @@ class PlotGUI(ABC):
             self.yax = self.figure.add_subplot(gs[3], sharey=hm_ax)
             self.yax.axis('off')
             self.axes = hm_ax
+            self.gridspec = gs
         else:
             gs = GridSpec(2, 3, width_ratios=[12, 1, tree_size], height_ratios=[1, 12])
             hm_ax = self.figure.add_subplot(gs[3])
@@ -97,6 +98,7 @@ class PlotGUI(ABC):
             self.axes = hm_ax
             self.tree_axes = self.figure.add_subplot(gs[5], sharey=hm_ax)
             self.tree_axes.axis('off')
+            self.gridspec = gs
 
     def save_figure(self, *args, **kwargs):
         '''Save the figure to file.
@@ -178,6 +180,7 @@ class PlotGUI(ABC):
         self.figure.tight_layout()
         # squeeze color bars close to the heatmap
         self.figure.subplots_adjust(hspace=0.01, wspace=0.01)
+        self.gridspec.tight_layout(self.figure)
 
     def connect_functions(self):
         '''Connect to the matplotlib callbacks for key and mouse '''

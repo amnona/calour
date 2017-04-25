@@ -268,7 +268,7 @@ def heatmap(exp, sample_field=None, feature_field=False, yticklabels_max=100,
     return fig
 
 
-def _figure_color_bar(exp, image, fig, axes, log_scale=True, num_ticks=8):
+def _figure_color_bar(exp, image, fig, axes, log_scale=True, num_ticks=8, aspect=100):
     '''Plot the heatmap colorbar scale
 
     Parameters
@@ -289,13 +289,13 @@ def _figure_color_bar(exp, image, fig, axes, log_scale=True, num_ticks=8):
     clim = image.get_clim()
     ticks = np.linspace(clim[0], clim[1], num_ticks)
     ticks = [eval("%.0e" % (x)) for x in ticks]
-    cb = fig.colorbar(image, ax=axes, ticks=ticks)
+    cb = fig.colorbar(image, ax=axes, ticks=ticks, aspect=aspect)
     if log_scale:
         tick_labels = np.power(2, ticks)
     else:
         tick_labels = ticks
     if exp.exp_metadata.get('normalized'):
-        tick_labels = 100 * tick_labels / exp.exp_metadata['normalized']
+        tick_labels = 100 * np.array(tick_labels) / exp.exp_metadata['normalized']
         tick_labels = ['%%%s' % x for x in tick_labels]
     cb.ax.set_yticklabels(tick_labels)
 
