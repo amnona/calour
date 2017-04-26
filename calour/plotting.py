@@ -122,6 +122,10 @@ def plot_diff_abundance_enrichment(exp, term_type='term', max_show=10, max_len=4
     axes: matplotlib.Axis or None (optional)
         The axis to which to plot the figure
         None (default) to create a new figure
+    ignore_exp : list None (optional)
+        list of experiment ids to ignore when doing the enrichment_analysis.
+        Useful when you don't want to get terms from your own experiment analysis.
+        For dbbact it is a list of int
     '''
     import matplotlib.pyplot as plt
     if '_calour_diff_abundance_effect' not in exp.feature_metadata.columns:

@@ -136,7 +136,7 @@ def heatmap(exp, sample_field=None, feature_field=False, yticklabels_max=100,
     clim : tuple of (float, float) or None (optional)
         the min and max values for the heatmap or None to use all range. It uses the min
         and max values in the ``data`` array by default.
-    xticklabel_rot : float or Nonr (optional)
+    xticklabel_rot : float or None (optional)
         The rotation angle for the x labels (if sample_field is supplied)
         if None, will have rotation=0, horizontalalignment='center', otherwise horizontalalignment='right'
     xticklabel_len : int (optional) or None
