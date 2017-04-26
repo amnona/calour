@@ -178,9 +178,11 @@ class PlotGUI(ABC):
         '''Run the GUI.'''
         self.connect_functions()
         self.figure.tight_layout()
+        # the following line does not work since makes the colorbars far away so commented
+        # self.gridspec.tight_layout(self.figure, pad=1, h_pad=0, w_pad=0)
+
         # squeeze color bars close to the heatmap
         self.figure.subplots_adjust(hspace=0.01, wspace=0.01)
-        self.gridspec.tight_layout(self.figure)
 
     def connect_functions(self):
         '''Connect to the matplotlib callbacks for key and mouse '''
