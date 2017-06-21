@@ -320,7 +320,7 @@ def center_log(exp, delta=1, method=None, inplace=False):
     ----------
     delta : numeric, optional
         cap the tiny values and then clr transform the data.
-    method : str, optional
+    method : callable, optional
         An optional function to specify how the pseudocount method should be
         handled.
     inplace : bool, optional
