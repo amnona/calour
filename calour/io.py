@@ -252,7 +252,6 @@ def read_open_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_m
     exp = read(data_file, sample_metadata_file, feature_metadata_file,
                data_file_type=data_file_type, sparse=sparse,
                normalize=normalize, cls=MS1Experiment, **kwargs)
-
     exp.sample_metadata['id'] = exp.sample_metadata.index.values
 
     # generate nice M/Z (MZ) and retention time (RT) columns for each feature
@@ -262,12 +261,12 @@ def read_open_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_m
         # autodetect the mz/rt separator
         tmp = exp.feature_metadata['id'].iloc[0].split('_')
         if len(tmp) == 2:
-            logger.debug('Autodetcted "_" as mz/rt separator')
+            logger.debug('Autodetected "_" as mz/rt separator')
             mz_rt_sep = '_'
         else:
             tmp = exp.feature_metadata['id'].iloc[0].split()
             if len(tmp) == 2:
-                logger.debug('Autodetcted " " as mz/rt separator')
+                logger.debug('Autodetected " " as mz/rt separator')
                 mz_rt_sep = None
             else:
                 raise ValueError('No separator detected for mz/rt separation in feature ids. please specify separator in mz_rt_sep parameter')

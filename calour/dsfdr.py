@@ -151,6 +151,12 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
 
     logger.debug('dsfdr using fdr method: %s' % fdr_method)
 
+    if len(np.unique(labels)) < 2:
+        logger.info('dsfdr: only one group in labels')
+        reject = np.zeros(data.shape[0], dtype=int)
+        pvals = np.ones(data.shape[0], dtype=int)
+        return reject,reject,pvals
+
     data = data.copy()
 
     if fdr_method == 'filterBH':
