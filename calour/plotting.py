@@ -119,15 +119,15 @@ def plot_enrichment(exp, enriched, max_show=10, max_len=40, ax=None):
     if negative > 0:
         ax.barh(np.arange(negative), evals[:negative])
     use = np.zeros(len(enriched), dtype=bool)
-    use[:positive] = True
-    use[-negative:] = True
+    use[-positive:] = True
+    use[:negative] = True
     ticks = enriched['term'].values[use]
     ticks = [x.split('(')[0] for x in ticks]
     ticks = ['LOWER IN '+x[1:] if x[0] == '-' else x for x in ticks]
     ticks = [x[:max_len] for x in ticks]
     ax.set_yticks(np.arange(negative+positive))
     ax.set_yticklabels(ticks)
-    ax.set_xlabel('effect size (positive is higher in group1')
+    ax.set_xlabel('effect size (positive is higher in group1)')
     return fig
 
 
