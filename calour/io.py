@@ -139,7 +139,7 @@ def _get_md_from_biom(table):
     return md_df
 
 
-def _read_open_ms(fp, transpose=True, rows_are_samples=False):
+def _read_open_ms(fp, transpose=True, rows_are_samples=False, sep=','):
     '''Read an OpenMS bucket table csv file
 
     Parameters
@@ -168,7 +168,7 @@ def _read_open_ms(fp, transpose=True, rows_are_samples=False):
     logger.debug('loading OpenMS bucket table %s' % fp)
     # use the python engine as the default (c) engine throws an error
     # a known bug in pandas (see #11166)
-    table = pd.read_csv(fp, header=0, engine='python')
+    table = pd.read_csv(fp, header=0, engine='python', sep=sep)
     table.set_index(table.columns[0], drop=True, inplace=True)
     if rows_are_samples:
         table = table.transpose()
@@ -207,6 +207,74 @@ def _read_table(fp, encoding=None):
     return table
 
 
+def read_gnps_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_metadata_file=None,
+                 description=None, sparse=False, *, normalize, **kwargs):
+    '''Load an OpenMS metabolomics experiment.
+
+    Parameters
+    ----------
+    data_file : str
+        name of the OpenMS bucket table CSV file.
+    sample_metadata_file : str or None (optional)
+        None (default) to not load metadata per sample
+        str to specify name of sample mapping file (tsv)
+    gnps_file : str or None (optional)
+        name of the gnps clusterinfosummarygroup_attributes_withIDs_arbitraryattributes/XXX.tsv file
+        for use with the 'gnps' database in plot
+    feature_metadata_file : str or None (optional)
+        Name of table containing additional metadata about each feature
+        None (default) to not load
+    description : str or None (optional)
+        Name of the experiment (for display purposes).
+        None (default) to assign file name
+    sparse : bool (optional)
+        False (default) to store data as dense matrix (faster but more memory)
+        True to store as sparse (CSR)
+    normalize : int or None
+        normalize each sample to the specified reads. ``None`` to not normalize
+
+    Returns
+    -------
+    exp : ``calour.MS1Experiment``
+    '''
+    logger.debug('Reading OpenMS data (OpenMS bucket table %s, map file %s)' % (data_file, sample_metadata_file))
+    data_file_type = 'gnps_ms'
+    exp = read(data_file, sample_metadata_file, feature_metadata_file,
+               data_file_type=data_file_type, sparse=sparse,
+               normalize=normalize, cls=MS1Experiment, **kwargs)
+
+    exp.sample_metadata['id'] = exp.sample_metadata.index.values
+
+    # generate nice M/Z (MZ) and retention time (RT) columns for each feature
+    exp.feature_metadata['id'] = exp.feature_metadata.index.values
+
+    if gnps_file:
+        # load the gnps table
+        gnps_data = pd.read_table(gnps_file, sep='\t', index_col='cluster index')
+        exp.exp_metadata['_calour_metabolomics_gnps_table'] = gnps_data
+        # add gnps names to the features
+        # exp._prepare_gnps()
+        mz_dat = {}
+        rt_dat = {}
+        for cmet in exp.feature_metadata.index.values:
+            if cmet in gnps_data.index:
+                mz_dat[cmet] = gnps_data['parent mass'][cmet]
+                rt_dat[cmet] = gnps_data['RTMean'][cmet]
+            else:
+                logger.debug('metabolite id %s not in gnps data file' % cmet)
+        exp.feature_metadata['MZ']=pd.Series(mz_dat)
+        exp.feature_metadata['RT']=pd.Series(rt_dat)
+    else:
+        exp.feature_metadata[['MZ', 'RT']] = ('NA','NA')
+    # Set the gnps id for each feature so gnps_calour will use it
+    gnps_ids = {}
+    for cmet in exp.feature_metadata.index.values:
+        gnps_ids[cmet] = [gnps_data.index.get_loc(cmet)]
+    exp.feature_metadata['__calour_gnps_ids'] = pd.Series(gnps_ids)
+    exp._prepare_gnps()
+    return exp
+
+
 def read_open_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_metadata_file=None,
                  description=None, sparse=False, rows_are_samples=False, mz_rt_sep=None, *, normalize, **kwargs):
     '''Load an OpenMS metabolomics experiment.
@@ -242,7 +310,7 @@ def read_open_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_m
 
     Returns
     -------
-    exp : ``Experiment``
+    exp : ``calour.Experiment``
     '''
     logger.debug('Reading OpenMS data (OpenMS bucket table %s, map file %s)' % (data_file, sample_metadata_file))
     if rows_are_samples:
@@ -280,6 +348,8 @@ def read_open_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_m
         # load the gnps table
         gnps_data = pd.read_table(gnps_file, sep='\t')
         exp.exp_metadata['_calour_metabolomics_gnps_table'] = gnps_data
+        # link each feature to the gnps ids based on MZ/RT
+        exp._prepare_gnps_ids()
         # add gnps names to the features
         exp._prepare_gnps()
 
@@ -315,6 +385,7 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         'tsv': a tab-separated table with (samples in column and feature in row)
         'openms' : an OpenMS bucket table csv (rows are feature, columns are samples)
         'openms_transpose' an OpenMS bucket table csv (columns are feature, rows are samples)
+        'gnps_ms' : an OpenMS bucket table tsv with samples as columns (exported from GNPS)
         'qiime2' : a qiime2 biom table artifact (need to have qiime2 installed)
     encoding : str or None (optional)
         encoder for the metadata files. None (default) to use
@@ -348,6 +419,8 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         sid, oid, data = _read_open_ms(data_file, rows_are_samples=False)
     elif data_file_type == 'openms_transpose':
         sid, oid, data = _read_open_ms(data_file, rows_are_samples=True)
+    elif data_file_type == 'gnps_ms':
+        sid, oid, data = _read_open_ms(data_file, rows_are_samples=False, sep='\t')
     elif data_file_type == 'qiime2':
         sid, oid, data, md = _read_qiime2(data_file)
     elif data_file_type == 'tsv':
