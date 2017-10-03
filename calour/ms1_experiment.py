@@ -96,10 +96,10 @@ class MS1Experiment(Experiment):
             logger.warn('No GNPS data file supplied - labels will be NA')
             self.feature_metadata['__calour_gnps_ids'] = None
             return
-        gnps_class = _get_database_class('gnps')
+        gnps_class = _get_database_class('gnps', exp=self)
         gnps_ids = {}
         for cmet in self.feature_metadata.index.values:
-            cids = gnps_class._find_close_annotation(self.feature_metadata['MZ'][cmet], self.sample_metadata['RT'][cmet], mzerr=mzerr, rterr=rterr)
+            cids = gnps_class._find_close_annotation(self.feature_metadata['MZ'][cmet], self.feature_metadata['RT'][cmet], mzerr=mzerr, rterr=rterr)
             gnps_ids[cmet] = cids
         self.feature_metadata['__calour_gnps_ids'] = pd.Series(gnps_ids)
 
