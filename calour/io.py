@@ -264,13 +264,15 @@ def read_gnps_ms(data_file, sample_metadata_file=None, gnps_file=None, feature_m
                 logger.debug('metabolite id %s not in gnps data file' % cmet)
         exp.feature_metadata['MZ'] = pd.Series(mz_dat)
         exp.feature_metadata['RT'] = pd.Series(rt_dat)
+        gnps_ids = {}
+        for cmet in exp.feature_metadata.index.values:
+            gnps_ids[cmet] = [gnps_data.index.get_loc(cmet)]
+        exp.feature_metadata['__calour_gnps_ids'] = pd.Series(gnps_ids)
     else:
-        exp.feature_metadata[['MZ', 'RT']] = ('NA', 'NA')
+        exp.feature_metadata['MZ'] = 'NA'
+        exp.feature_metadata['RT'] = 'NA'
+        exp.feature_metadata['__calour_gnps_ids'] = 'NA'
     # Set the gnps id for each feature so gnps_calour will use it
-    gnps_ids = {}
-    for cmet in exp.feature_metadata.index.values:
-        gnps_ids[cmet] = [gnps_data.index.get_loc(cmet)]
-    exp.feature_metadata['__calour_gnps_ids'] = pd.Series(gnps_ids)
     exp._prepare_gnps()
     return exp
 
