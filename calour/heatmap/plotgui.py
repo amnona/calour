@@ -175,7 +175,7 @@ class PlotGUI(ABC):
                     for cannotation in cannt:
                         cannotation[0]['_db_interface'] = cdatabase
             except:
-                cannt = [[{'annotationtype':'error'}, 'error connecting to db %s' % cdatabase.database_name]]
+                cannt = [[{'annotationtype': 'error'}, 'error connecting to db %s' % cdatabase.database_name]]
             annt.extend(cannt)
         return annt
 
