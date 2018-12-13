@@ -68,13 +68,13 @@ def plot_hist(exp: Experiment, ax=None, **kwargs):
     # note the count number on top of the histogram bars
     for rect, n in zip(patches, counts):
         height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2, height + 5,
+        ax.text(rect.get_x() + rect.get_width() / 2, height + 5,
                 int(n), ha='center', va='bottom',
                 rotation=90, fontsize=7)
     return counts, bins, ax
 
 
-def plot_enrichment(exp: Experiment, enriched, max_show=10, max_len=40, ax=None, labels=('group1', 'group2'), colors=('green', 'red')):
+def plot_enrichment(exp: Experiment, enriched, max_show=10, max_len=40, ax=None, labels=('group1', 'group2'), colors=('green', 'red'), get_enrich_count=False):
     '''Plot a horizontal bar plot for enriched terms
 
     Parameters
@@ -93,6 +93,8 @@ def plot_enrichment(exp: Experiment, enriched, max_show=10, max_len=40, ax=None,
         name for terms enriched in group1 or group2 respectively, or None to not show legend
     colors: tuple of (str, str) or None (optional)
         Colors for terms enriched in group1 or group2 respectively
+    get_enrich_count: bool, optional
+        True to scale each bar by the number of significant experiments the term appears in
 
 
     Returns
@@ -115,10 +117,26 @@ def plot_enrichment(exp: Experiment, enriched, max_show=10, max_len=40, ax=None,
     if negative + positive == 0:
         logger.warning('No significantly enriched categories found')
         return ax
-    if positive > 0:
-        ax.barh(np.arange(positive) + negative, evals[-positive:], color=colors[0])
+
+    if 'sizes' in enriched.columns:
+        sizes = enriched['sizes'].values + 1
+    else:
+        sizes = np.ones(len(enriched))
     if negative > 0:
-        ax.barh(np.arange(negative), evals[:negative], color=colors[1])
+        max1 = np.max(sizes[:negative])
+    else:
+        max1 = 0
+    if positive > 0:
+        max2 = np.max(sizes[-positive:])
+    else:
+        max2 = 0
+    sizes = 0.8 * sizes / np.max([max1, max2])
+
+    if positive > 0:
+        ypos = np.cumsum(sizes[-positive:]) + np.sum(sizes[:negative])
+        ax.barh(np.arange(positive) + negative, evals[-positive:], height=sizes[-positive:], color=colors[0])
+    if negative > 0:
+        ax.barh(np.arange(negative), evals[:negative], height=sizes[:negative], color=colors[1])
     use = np.zeros(len(enriched), dtype=bool)
     if positive > 0:
         use[-positive:] = True
@@ -126,9 +144,9 @@ def plot_enrichment(exp: Experiment, enriched, max_show=10, max_len=40, ax=None,
         use[:negative] = True
     ticks = enriched['term'].values[use]
     ticks = [x.split('(')[0] for x in ticks]
-    ticks = ['LOWER IN '+x[1:] if x[0] == '-' else x for x in ticks]
+    ticks = ['LOWER IN ' + x[1:] if x[0] == '-' else x for x in ticks]
     ticks = [x[:max_len] for x in ticks]
-    ax.set_yticks(np.arange(negative+positive))
+    ax.set_yticks(np.arange(negative + positive))
     ax.set_yticklabels(ticks)
     if labels is not None:
         ax.set_xlabel('effect size (positive is higher in %s)' % labels[0])
@@ -138,7 +156,7 @@ def plot_enrichment(exp: Experiment, enriched, max_show=10, max_len=40, ax=None,
     return ax
 
 
-def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=None, colors=('green', 'red'), show_legend=True, **kwargs):
+def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=None, colors=('green', 'red'), show_legend=True, get_enrich_count=False, **kwargs):
     '''Plot the term enrichment of differentially abundant bacteria
 
     Parameters
@@ -162,6 +180,8 @@ def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=
         Colors for terms enriched in group1 or group2 respectively
     show_legend: bool (optional)
         True to show the color legend, False to hide it
+    get_enrich_count: bool, optional
+        True to scale each bar by the number of significant experiments the term appears in
     **kwargs : dict, optional
         Additional database specific enrichment parameters (see per-database module documentation for .enrichment() method)
 
@@ -181,7 +201,6 @@ def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=
 
     # get the enrichment
     enriched, term_features, features = exp.enrichment(features=positive, dbname='dbbact', **kwargs)
-    # features=pd.DataFrame({'sequence': features}, index=features)
 
     # Create an new experiment where features are the enriched terms, and samples are the features
     # The newexp.feature_metadata contains the 'odif', 'pval' fields for each term
@@ -199,6 +218,13 @@ def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=
     else:
         labels = None
 
+    # optionallly get the number of enriched experiments for each term
+    if get_enrich_count:
+        params = kwargs.copy()
+        params['term_type'] = 'sigterm'
+        enriched2, term_features2, features2 = exp.enrichment(features=positive, dbname='dbbact', **params)
+        sizes = [enriched2['odif'].get(cterm, 0) for cterm in enriched.index.values]
+        enriched['sizes'] = sizes
     # and plot
     ax2 = exp.plot_enrichment(enriched, max_show=max_show, max_len=max_len, ax=ax, labels=labels, colors=colors)
 
