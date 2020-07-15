@@ -68,6 +68,7 @@ def downsample(exp: Experiment, field, axis=0, keep=None,
         samples/features smaller than ``keep``, the whole group is dropped.
         Default to downsample to minimal group size.
     inplace : bool, optional
+        False (default) to create a copy of the experiment, True to downsample inplace
     random_seed : int, np.radnom.Generator instance or None, optional, default=None
         set the random number generator seed
         If int, random_seed is the seed used by the random number generator;

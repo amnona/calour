@@ -110,7 +110,6 @@ class StatisticsTests(TestCase):
 
 class fdr_methodsTests(TestCase):
     def setUp(self):
-        np.random.seed(31)
         self.labels = np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0])
         self.data = np.array([[0, 1, 3, 5, 0, 1, 100, 300, 400, 500, 600, 700],
                               [1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1],

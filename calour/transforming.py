@@ -251,7 +251,7 @@ def log_n(exp: Experiment, n=1, inplace=False) -> Experiment:
     return exp
 
 
-def permute_data(exp: Experiment, normalize=True, inplace=False) -> Experiment:
+def permute_data(exp: Experiment, normalize=True, inplace=False, random_seed=None) -> Experiment:
     '''Shuffle independently the abundances of each feature.
 
     This creates a new experiment with no dependency between features.
@@ -261,6 +261,13 @@ def permute_data(exp: Experiment, normalize=True, inplace=False) -> Experiment:
     normalize : bool, optional
         True (default) to normalize each sample after completing the feature shuffling.
         False to not normalize
+    inplace : bool, optional
+        False (default) to create a copy of the experiment, True to filter inplace
+    random_seed : int, np.radnom.Generator instance or None, optional, default=None
+        set the random number generator seed
+        If int, random_seed is the seed used by the random number generator;
+        If Generator instance, random_seed is set to the random number generator;
+        If None, then fresh, unpredictable entropy will be pulled from the OS
 
     Returns
     -------
@@ -271,9 +278,11 @@ def permute_data(exp: Experiment, normalize=True, inplace=False) -> Experiment:
     if not inplace:
         exp = deepcopy(exp)
 
+    rng = np.random.default_rng(random_seed)
+
     exp.sparse = False
     for cfeature in range(exp.shape[1]):
-        np.random.shuffle(exp.data[:, cfeature])
+        rng.shuffle(exp.data[:, cfeature])
     if normalize:
         exp.normalize(np.mean(exp.data.sum(axis=1)), inplace=True)
     return exp
