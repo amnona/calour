@@ -13,6 +13,7 @@ from pkg_resources import resource_filename
 from .experiment import Experiment
 from .amplicon_experiment import AmpliconExperiment
 from .ms1_experiment import MS1Experiment
+from .mrna_experiment import MRNAExperiment
 from .io import read, read_amplicon, read_ms, read_qiime2
 from .util import set_log_level, register_functions
 
@@ -26,7 +27,7 @@ __all__ = ['read', 'read_amplicon', 'read_ms', 'read_qiime2',
 
 
 # add member functions to the class
-register_functions((Experiment, AmpliconExperiment, MS1Experiment))
+register_functions((Experiment, AmpliconExperiment, MS1Experiment, MRNAExperiment))
 
 
 # setting False allows other logger to print log.
