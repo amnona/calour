@@ -109,6 +109,8 @@ class MRNAExperiment(Experiment):
         # vmax are set the same once for all AmpliconExperiment
         # objects (which we don't want) because python initializes
         # the function arguments when it reads in its definition.
+
+        # by default use the log normalization
         if 'norm' not in kwargs:
             kwargs['norm'] = mpl.colors.LogNorm()
         super().heatmap(*args, **kwargs)
