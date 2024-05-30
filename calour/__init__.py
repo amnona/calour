@@ -13,13 +13,12 @@ from pkg_resources import resource_filename
 from .experiment import Experiment
 from .amplicon_experiment import AmpliconExperiment
 from .ms1_experiment import MS1Experiment
-from .mrna_experiment import MRNAExperiment
 from .io import read, read_amplicon, read_ms, read_qiime2
 from .util import set_log_level, register_functions
 
 
 __credits__ = "https://github.com/biocore/calour/graphs/contributors"
-__version__ = "2022.7.1"
+__version__ = "2024.5.30"
 
 __all__ = ['read', 'read_amplicon', 'read_ms', 'read_qiime2',
            'Experiment', 'AmpliconExperiment', 'MS1Experiment',
@@ -27,7 +26,7 @@ __all__ = ['read', 'read_amplicon', 'read_ms', 'read_qiime2',
 
 
 # add member functions to the class
-register_functions((Experiment, AmpliconExperiment, MS1Experiment, MRNAExperiment))
+register_functions((Experiment, AmpliconExperiment, MS1Experiment))
 
 
 # setting False allows other logger to print log.
