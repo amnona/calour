@@ -3,6 +3,8 @@
 ## Version 2024.12.23
 Bug Fixes:
 * fix problem arising from inexact numpy matrix multiplication that resulted in more stringent dsFDR than requested when using the default 'meandiff' method
+
+
 ## Version 2024.8.31
 New features:
 * add shuffler optional parameter and improved data validation for analysis.correlation()
@@ -11,6 +13,7 @@ Bug Fixes:
 * Update code and unit tests to work with new version of numpy/pandas/scipy/matplotlib (some of the functions are deprecated in newer versions)
 * Bump requirements for numpy/pandas/scipy/matplotlib/python
 
+
 ## Version 2024.8.29
 New Features:
 * Support lists for sample_metadata and feature_metadata in Experiment.__init__()
@@ -18,39 +21,44 @@ New Features:
 Bug Fixes:
 * Raise error when plotting a heatmap for an empty experiment
 
-## Version 2024.8.25
 
+## Version 2024.8.25
 New features:
 * Add CorrelationExperiment class for working with correlation matrices and showing significance in heatmap
 Other changes:
 * Update experiment classes to provide the _get_abundance_info() method for the interactive heatmap (instead of being produced by the heatmap() method). This allows experiment class specific information to be shown in the heatmap abundance field when clicking on a feature/sample.
 
+
 ## Version 2024.5.30
 add mRNAExperiment class for handling rna-seq data. interactive heatmap gene information is via the rna_calour module using Harmonizome server (https://maayanlab.cloud/Harmonizome)
+
 
 ## Version 2024.5.16
 Bug Fixes:
 * update diff_abundance() to work with numeric columns (previously raised an exception)
 
-## Version 2023.4.22
 
+## Version 2023.4.22
 Bug Fixes:
 * update the Experiment.plot() function so works also with matplotlib > 3.7
 
+
 ## Version 2022.9.8
+Other changes:
+* Add type hints to function return values
+* Create Experiment.info dict and populate with md5s if not provided when creating a new experiment
+
 
 Other changes:
 * Add type hints to function return values
 * Create Experiment.info dict and populate with md5s if not provided when creating a new experiment
 
-Other changes:
-* Add type hints to function return values
-* Create Experiment.info dict and populate with md5s if not provided when creating a new experiment
 
 ## Version 2022.7.1
 Incompatible changes:
 * Change default join_metadata_fields() inplace parameter to False
 * In plot_diff_abundance_enrichment(), plot_enrichment(), Replaced enriched_exp_color parameter with labels_kwargs, numbers_kwargs, to enable better control of the barplot labels
+
 
 Bug Fixes:
 * Fix join_metadata_fields() to use axis='s' by default
@@ -62,8 +70,8 @@ Bug Fixes:
 * Fix heatmap() to copy the colormap to avoid matplotlib depracation warning (modifying the state of a globally registered colormap)
 * Fix experiment read functions to show by default only the summary and first 5 samples without data/without metadata
 
-## Version 2020.8.6
 
+## Version 2020.8.6
 Incompatible changes:
 * Change random_seed to work with numpy.random.default_rng. This may cause different random numbers compared to the old versions using numpy.random.seed().
 * Change parameter names in some functions
@@ -87,15 +95,15 @@ New features:
 Other changes:
 * make scikit-bio an optional dependency (needed only when processing dendrograms)
 
-## Version 2019.5.1
 
+## Version 2019.5.1
 * Add `reverse` parameter to the sorting functions.
 * Fix minor documentation formatting issues
 * Update installation instruction with conda install from conda-forge
 * Change the column names added to `Experiment.feature_metadata` after running `Experiment.correlation` or `Experiment.diff_abundance`
 
-## Version 2018.10.1
 
+## Version 2018.10.1
 * Add notebook tutorial for `calour.training` module for classification and regression.
 * Add notebook tutorial for metabolome data analysis
 * Add plot functions in `calour.training` module
@@ -104,10 +112,8 @@ Other changes:
 
 
 ## Version 2018.5.2
-
 * Add export_html() function to save heatmap as an interactive html heatmap
 
 
 ## Version 2018.5.1
-
 * In `calour.training` module, added functions to do regression and classification and to visualize their results. `SortedStratifiedKFold` and `RepeatedSortedStratifiedKFold` are aslo added for stratified cross validation for regression. They are recommended.
