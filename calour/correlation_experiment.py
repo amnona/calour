@@ -237,6 +237,38 @@ class CorrelationExperiment(Experiment):
         else:
             logger.warning('No qvals attached to experiment. qvals experiment not saved')
 
+    def filter_qvals(self, threshold=0.05, strict=True, replace_value=np.nan, inplace=False):
+        '''Filter based on the q-values in the experiment. Replaces all values with q-values above the threshold with the replace_value.
+        
+        Parameters
+        ----------
+        threshold : float
+            The threshold to filter the q-values by.
+        strict : bool
+            If True, will only replace the values that are strictly above (>) the threshold. False to filter values that are above or equal to the threshold.
+        replace_value : float
+            The value to replace the filtered values with.
+        inplace : bool
+            If True, will replace the values in the experiment. False to return a new experiment object with the filtered values.
+        
+        Returns
+        -------
+        CorrelationExperiment
+            The filtered experiment with data replaced according to the q-values threshold.
+        '''
+        self._sync_qvals()
+        if not inplace:
+            exp = self.copy()
+        else:
+            exp = self
+        if strict:
+            exp.data[self.qvals.data > threshold] = replace_value
+            logger.debug('removed %d values with qval > %f' % (np.sum(self.qvals.data > threshold), threshold))
+        else:
+            exp.data[self.qvals.data >= threshold] = replace_value
+            logger.debug('removed %d values with qval > %f' % (np.sum(self.qvals.data >= threshold), threshold))
+        return exp
+
     def _calculate_corr_matrix(df1, df2):
         '''Calculate the spearman correlation matrix between all columns of two DataFrames
         Ignores non-numeric values
@@ -291,12 +323,16 @@ class CorrelationExperiment(Experiment):
         '''
         if df2 is None:
             df2=df1
+            decription = 'correlation from 1 dataframe'
+        else:
+            description = 'correlation from 2 dataframes'
+
         corrs,pvals = self._calculate_corr_matrix(df1, df2)
         new_smd = pd.DataFrame(index=df1.columns)
         new_fmd = pd.DataFrame(index=df2.columns)
         new_smd['SampleID']=new_smd.index.values
         new_fmd['_feature_id']=new_fmd.index.values
-        exp=CorrelationExperiment(data=corrs, sample_metadata=new_smd, feature_metadata=new_fmd, qvals=pvals, sparse=False)
+        exp=CorrelationExperiment(data=corrs, sample_metadata=new_smd, feature_metadata=new_fmd, qvals=pvals, sparse=False, description=description)
         exp=exp.cluster_data(axis='f')
         exp=exp.cluster_data(axis='s')
         return exp
