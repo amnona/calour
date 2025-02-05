@@ -1,5 +1,9 @@
 # calour changelog
 
+## Version 2025.2.5
+New features:
+* add filter_qvals() method to correlation experiment
+
 ## Version 2024.12.23
 Bug Fixes:
 * fix problem arising from inexact numpy matrix multiplication that resulted in more stringent dsFDR than requested when using the default 'meandiff' method
