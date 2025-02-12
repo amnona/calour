@@ -111,9 +111,7 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
     if field not in exp.sample_metadata.columns:
         raise ValueError('Field %s not in sample_metadata. Possible fields are: %s' % (field, exp.sample_metadata.columns))
 
-    cexp = exp.filter_sum_abundance(0, strict=True)
-
-    data = cexp.get_data(copy=True, sparse=False).transpose()
+    data = exp.get_data(copy=True, sparse=False).transpose()
 
     labels = pd.to_numeric(exp.sample_metadata[field], errors='coerce').values
     # remove the nans
@@ -139,7 +137,7 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
     keep, odif, pvals, qvals = dsfdr.dsfdr(data, labels, method=method, transform_type=transform, alpha=alpha, numperm=numperm, fdr_method=fdr_method, shuffler=shuffler, random_seed=random_seed)
     logger.info('Positive correlated features : %d. Negative correlated features : %d. total %d'
                 % (np.sum(odif[keep] > 0), np.sum(odif[keep] < 0), np.sum(keep)))
-    newexp = _new_experiment_from_pvals(cexp, exp, keep, odif, pvals, qvals)
+    newexp = _new_experiment_from_pvals(exp, None, keep, odif, pvals, qvals)
     newexp.feature_metadata[_CALOUR_DIRECTION] = [field if x > 0 else 'Anti-%s' % field for x in newexp.feature_metadata[_CALOUR_STAT]]
     return newexp
 
@@ -194,7 +192,7 @@ def diff_abundance(exp: Experiment, field, val1, val2=None, method='meandiff', t
           removed when say alpha=0.1)
     shuffler: function or None, optional
         if None, use shuffling on all samples (using the random_seed supplied)
-        if function, use thi supplied function to shuffle to labels for random iteration. Can be used for paired shuffling, etc.
+        if function, use this supplied function to shuffle to labels for random iteration. Can be used for paired shuffling, etc.
         Input to the function is the labels (np.array), and the random number generator (np.radnom.Generator), output is the shuffled labels (np.array)
     random_seed : int, np.radnom.Generator instance or None, optional, default=None
         set the random number generator seed for the random permutations
@@ -410,6 +408,93 @@ def diff_abundance_paired(exp: Experiment, pair_field, field, val1, val2=None, t
     # exp = exp.sort_samples(pair_field)
     newexp = exp.diff_abundance(shuffler=_pair_shuffler, field=field, val1=val1, val2=val2, random_seed=random_seed, transform=transform, **kwargs)
     return newexp
+
+@format_docstring(_CALOUR_PVAL, _CALOUR_QVAL, _CALOUR_STAT, _CALOUR_DIRECTION)
+def correlation_paired(exp: Experiment, pair_field: str, field: str, 
+                       random_seed=None, **kwargs) -> Experiment:
+    '''Find features with correlation to a numeric metadata field.
+
+    The permutation based p-values and multiple hypothesis correction is implemented.
+
+    Parameters
+    ----------
+    pair_field: str
+        The sample metadata field on which samples are paired.
+        NOTE:
+        field values with !=2 samples are dropped.
+    field: str
+        The field to test by. Values are converted to numeric.
+    transform : str or None
+        transformation to apply to the data before caluculating the statistic:
+        * 'rankdata' : rank transfrom each OTU reads
+        * 'log2data' : calculate log2 for each OTU using minimal cutoff of 2
+        * 'normdata' : normalize the data to constant sum per samples
+        * 'binarydata' : convert to binary absence/presence
+
+    Keyword Arguments
+    -----------------
+    %(analysis.diff_abundance.parameters)s
+
+    Returns
+    -------
+    Experiment
+        The experiment with only correlated features, sorted according to correlation coefficient.
+
+        * '{}' : the non-adjusted p-values for each feature
+        * '{}' : the FDR-adjusted q-values for each feature
+        * '{}' : the statistics (correlation coefficient if
+          the `method` is 'spearman' or 'pearson'). If it
+          is larger than zero for a given feature, it indicates this
+          feature is positively correlated with the sample metadata;
+          otherwise, negatively correlated.
+        * '{}' : in which of the 2 sample groups this given feature is increased.
+    '''
+    if pair_field not in exp.sample_metadata.columns:
+        raise ValueError('pair_field %s not in sample_metadata. Possible fields are: %s' % (field, exp.sample_metadata.columns))
+
+    print('gaga')
+    # remove samples that have non-numeric value in the correlation field
+    # (we need to do it now since the the group items are coded into the shuffler)
+    labels = pd.to_numeric(exp.sample_metadata[field], errors='coerce').values
+    ok_pos = np.where(~np.isnan(labels))[0]
+    if len(ok_pos) < len(labels):
+        logger.warning('Dropping %d samples with non-numeric values in field %s' % (len(labels) - len(ok_pos), field))
+    if len(ok_pos) == 0:
+        raise ValueError('Field %s does not seem to contain any samples with numeric value' % field)
+    print('gogo')
+
+    exp = exp.reorder(ok_pos, axis='s')
+
+    # keep only paired samples
+    drop_values = []
+    for cval, cexp in exp.iterate(pair_field):
+        if len(cexp.sample_metadata) < 2:
+            logger.debug('Value %s has only %d samples. dropped' % (cval, len(cexp.sample_metadata)))
+            drop_values.append(cval)
+    if len(drop_values) > 0:
+        logger.info('Dropping %d values with < 2 samples' % len(drop_values))
+        exp = exp.filter_samples(pair_field, drop_values, negate=True)
+    if len(exp.sample_metadata) == 0:
+        raise ValueError('No samples with >1 value in pair field left')
+    logger.info('%d samples left after removing group value singletons' % len(exp.sample_metadata))
+
+    # create the groups list for the shuffle function
+    groups = defaultdict(list)
+    for pos, (idx, crow) in enumerate(exp.sample_metadata.iterrows()):
+        groups[crow[pair_field]].append(pos)
+
+
+    # create the numpy.random.Generator for the paired shuffler
+    rng = np.random.default_rng(random_seed)
+
+    def _pair_shuffler(labels, rng=rng, groups=groups):
+        clabels = labels.copy()
+        for cgroup in groups.values():
+            clabels[cgroup] = rng.permutation(clabels[cgroup])
+        return clabels
+
+    new_exp = exp.correlation(shuffler=_pair_shuffler, field=field, random_seed=random_seed, **kwargs)
+    return new_exp
 
 
 def _new_experiment_from_pvals(cexp, exp, keep, odif, pvals, qvals) -> Experiment:

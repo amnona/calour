@@ -323,7 +323,7 @@ class CorrelationExperiment(Experiment):
         '''
         if df2 is None:
             df2=df1
-            decription = 'correlation from 1 dataframe'
+            description = 'correlation from 1 dataframe'
         else:
             description = 'correlation from 2 dataframes'
 
