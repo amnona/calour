@@ -109,6 +109,10 @@ class CorrelationExperiment(Experiment):
         '''
         self.qvals = self.qvals.filter_ids(self.feature_metadata.index, axis='f')
         self.qvals = self.qvals.filter_ids(self.sample_metadata.index, axis='s')
+        if len(self.qvals.feature_metadata) != len(self.feature_metadata):
+            raise ValueError('qvals feature metadata length %d does not match data feature metadata length %d' % (len(self.qvals.feature_metadata), len(self.feature_metadata)))
+        if len(self.qvals.sample_metadata) != len(self.sample_metadata):
+            raise ValueError('qvals sample metadata length %d does not match data sample metadata length %d' % (len(self.qvals.sample_metadata), len(self.sample_metadata)))
 
     def _get_abundance_info(self, row:int , col:int):
         '''Get a string with the abundance information for display in the interactive heatmap
