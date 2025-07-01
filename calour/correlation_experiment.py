@@ -147,6 +147,11 @@ class CorrelationExperiment(Experiment):
             If 'cmap' is in the list, use the 'cmap' parameter in significance_plot_params to set the colormap for the significant values.
             If 'x' is in the list, use the 'significance_plot_params' parameter to set the plot parameters for the significance values.
 
+            
+        Additional Parameters
+        ---------------------
+        %(heatmap.heatmap.parameters)s
+
         See Also
         --------
         Experiment.heatmap
@@ -180,11 +185,14 @@ class CorrelationExperiment(Experiment):
             min_val = kwargs['clim'][0]
             self.data[self.data>max_val]=max_val
             self.data[self.data<min_val]=min_val
-            self.data = self.data - (max_val + eps)
+            # self.data = self.data - (max_val + eps)
+            # shift the non-significant values
+            shift_val = (max_val-min_val)
+            self.data = self.data - shift_val
 
             qv = self.qvals.get_data(sparse=False)
-            sig_pos = qv < significance_threshold
-            self.data[sig_pos]+= (2*max_val)+eps
+            sig_pos = qv <= significance_threshold
+            self.data[sig_pos]+= shift_val+eps
             if 'cmap' in significance_plot_params:
                 cmap_sig = significance_plot_params['cmap']
                 del significance_plot_params['cmap']
@@ -198,7 +206,8 @@ class CorrelationExperiment(Experiment):
             concatenated_cmap = LinearSegmentedColormap.from_list('concatenated_cmap', colors)
             kwargs['cmap'] = concatenated_cmap
             # adjust the clim to account for the added values (negative values are for the non-significant values, positive values are for the significant values)
-            kwargs['clim'] = (2*kwargs['clim'][0], 2*kwargs['clim'][1])
+            kwargs['clim'] = (min_val - shift_val, eps+max_val)
+            # kwargs['clim'] = (2*kwargs['clim'][0], 2*kwargs['clim'][1])
 
         # call the heatmap function from the parent class using the exp object
         ax = super().heatmap(*args, **kwargs)
@@ -336,3 +345,74 @@ class CorrelationExperiment(Experiment):
         exp=exp.cluster_data(axis='f')
         exp=exp.cluster_data(axis='s')
         return exp
+
+    @classmethod
+    def from_feature_metadata_correlation(self, exp: Experiment, cluster_results=True, **kwargs) -> 'CorrelationExperiment':
+        '''Calculate the correlations between each feature and each sample metadata column.
+
+        This function will return a new CorrelationExperiment with the correlations between each feature and each sample metadata column.
+        It will filter out non-numeric sample metadata columns and calculate correlation for each numeric column.
+
+        Parameters
+        ----------
+        exp : Experiment
+            The Experiment object to calculate the correlations from.
+        cluster_results : bool, optional
+            If True, will cluster the results by features and samples.
+            If False, will not cluster the results.
+
+        Keyword Arguments
+        -----------------
+        %(analysis.correlation.parameters)s
+
+        Returns
+        -------
+        CorrelationExperiment
+            A new CorrelationExperiment with the correlations between each feature and each sample metadata column.
+            The data matrix will have features in rows and sample metadata columns in columns.
+            The qvals will contain the p-values for the correlations.
+        '''
+        corrs=[]
+        pvals=[]
+        fields=[]
+        for cfield in exp.sample_metadata.columns:
+            # test if the field is numeric
+            if not pd.api.types.is_numeric_dtype(exp.sample_metadata[cfield]):
+                logger.debug('field %s is not numeric, skipping' % cfield)
+                continue
+            try:
+                logger.info('calculating correlation for field %s' % cfield)
+                # remove 'alpha' from the **kwargs if it exists
+                old_alpha = kwargs.pop('alpha', 1)
+                if old_alpha != 1:
+                    logger.warning('alpha parameter is not supported for correlation from feature metadata, using alpha=1')
+                # calculate the correlation for the field
+                dd=exp.correlation(cfield,alpha=1)
+                # reorder the data to match the feature_metadata
+                dd=dd.filter_ids(exp.feature_metadata.index)
+                corrs.append(dd.feature_metadata['_calour_stat'].values)
+                pvals.append(dd.feature_metadata['_calour_pval'].values)
+                fields.append(cfield)
+            except Exception as e:
+                logger.info('error with field %s (%s)' % (cfield, e))
+                continue
+        
+        logger.info('calculated correlations for %d fields' % len(fields))
+
+        # create a new CorrelationExperiment with the correlations
+        corrs=np.array(corrs)
+        pvals=np.array(pvals)
+        cor_exp=CorrelationExperiment(corrs,pd.DataFrame({'field':fields}),exp.feature_metadata,qvals=pvals)
+
+        # remove columns with all NaN values
+        field_sums=np.sum(cor_exp.data,axis=1)
+        if np.sum(np.isnan(field_sums)) != 0:
+            logger.info('removing %d fields with no data' % np.sum(np.isnan(field_sums)))
+        cor_exp=cor_exp.reorder(np.isfinite(field_sums))
+
+        if cluster_results:
+            # cluster the results by features and samples
+            cor_exp = cor_exp.cluster_data(axis='f')
+            cor_exp = cor_exp.cluster_data(axis='s')
+
+        return cor_exp
