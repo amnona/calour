@@ -127,6 +127,9 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
         if len(labels) == 1:
             raise ValueError('Field %s contains only one unique value. Cannot calculate correlation.' % field)
 
+    if np.std(labels) == 0:
+        raise ValueError('Field %s contains only one unique value. Cannot calculate correlation.' % field)
+
     # change the method if we have nonzero
     if nonzero:
         if method == 'spearman':
