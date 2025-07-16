@@ -236,8 +236,9 @@ def diff_abundance(exp: Experiment, field, val1, val2=None, method='meandiff', t
         cexp = exp
         grp2 = 'NOT %s' % grp1
 
-    # remove features not present in both groups
-    cexp = cexp.filter_sum_abundance(0, strict=True)
+    # remove features not present in both groups (only in experiments without negtive values)
+    if not exp.negatives:
+        cexp = cexp.filter_sum_abundance(0, strict=True)
 
     data = cexp.get_data(copy=True, sparse=False).transpose()
     # prepare the labels.
@@ -304,8 +305,9 @@ def diff_abundance_kw(exp: Experiment, field, transform='rankdata', numperm=1000
 
     logger.debug('diff_abundance_kw for field %s' % field)
 
-    # remove features with 0 abundance
-    cexp = exp.filter_sum_abundance(0, strict=True)
+    # remove features with 0 abundance (only in experiments without negtive values)
+    if not exp.negatives:
+        cexp = exp.filter_sum_abundance(0, strict=True)
 
     data = cexp.get_data(copy=True, sparse=False).transpose()
     # prepare the labels. If correlation method, get the values, otherwise the group

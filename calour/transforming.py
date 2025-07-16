@@ -365,9 +365,17 @@ def subsample_count(exp: Experiment, total, replace=False, inplace=False, random
         exp = deepcopy(exp)
     if exp.sparse:
         exp.sparse = False
-    # subsample_counts() require int as input; if not, raise error
-    if exp.data.dtype.kind not in {'u', 'i'}:
+
+    if exp.normalized != 0:
         raise ValueError('Your `Experiment` object is normalized: subsample operates on integer raw data, not on normalized data.')
+    # subsample_counts() require int as input; if not, raise error
+
+    if exp.data.dtype.kind not in {'u', 'i'}:
+        logger.info('data is not defined as integer, converting to int')
+        # convert to int but validate data contains only whole numbers
+        if not np.all(np.equal(exp.data, np.floor(exp.data))):
+            raise ValueError('Your `Experiment` object contains non-integer data: subsample operates on integer raw data, not on normalized data.')
+        exp.data = exp.data.astype(int)
 
     drops = []
     np.random.seed(random_seed)

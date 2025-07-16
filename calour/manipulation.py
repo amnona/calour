@@ -137,6 +137,7 @@ def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=Fa
         * 'mean' : the mean of the group
         * 'median' : the median of the group
         * 'sum' : the sum of of the group
+        * 'random' : randomly select one sample/feature from the group
     axis : 0, 1, 's', or 'f', optional
         0 or 's' (default) to aggregate samples; 1 or 'f' to aggregate features
     inplace : bool, optional
@@ -177,6 +178,12 @@ def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=Fa
             newdat = np.median(cdata, axis=axis)
         elif agg == 'sum':
             newdat = cdata.sum(axis=axis)
+        elif agg == 'random':
+            rand_pos = np.random.randint(0, cdata.shape[axis])
+            if axis == 0:
+                newdat = cdata[rand_pos, :]
+            else:
+                newdat = cdata[:, rand_pos]
         else:
             raise ValueError('Unknown aggregation method: %r' % agg)
         merge_number[i] = pos.sum()

@@ -227,8 +227,15 @@ def cluster_features(exp: Experiment, cutoff=0, inplace=False) -> Experiment:
     standardize
 
     '''
-    newexp = exp.filter_sum_abundance(cutoff, inplace=inplace)
-    return newexp.cluster_data(transform=chain, steps=[log_n, standardize],
+    if not exp.negatives:
+        newexp = exp.filter_sum_abundance(cutoff, inplace=inplace)
+        steps = [log_n, standardize]
+    else:
+        steps = [standardize]
+        if cutoff > 0:
+            logger.warning('cutoff is set to %s, but experiment contains negative values. cutoff will not be applied.' % cutoff)
+
+    return newexp.cluster_data(transform=chain, steps=steps,
                                standardize__axis=1,
                                axis=1, inplace=True)
 
@@ -314,6 +321,7 @@ def sort_by_data(exp: Experiment, axis=0, subset=None, key='log_mean',
 
         * 'log_mean': sort by the mean of the log;
         * 'prevalence': sort by the prevalence;
+        * 'mean': sort by the mean of the values;
 
     inplace : bool, default=False
         False to create a copy. True to modify in place.
@@ -336,7 +344,8 @@ def sort_by_data(exp: Experiment, axis=0, subset=None, key='log_mean',
             data_subset = exp.data[subset, :]
 
     func = {'log_mean': _log_n_1d,
-            'prevalence': _prevalence_1d}
+            'prevalence': _prevalence_1d,
+            'mean': np.mean}
     key = func.get(key, key)
 
     if exp.sparse:
@@ -380,6 +389,15 @@ def _log_n_1d(x, n=1):
 
 
 def _prevalence_1d(x, cutoff=0):
+    '''return the prevalence (fraction of samples where the feature is present above the cutoff)
+    
+    Parameters
+    ----------
+    x : 1-d array-like
+        the values of the feature across samples
+    cutoff : numeric, default=0
+        the cutoff value to consider a feature present in a sample
+    '''
     return np.sum(i >= cutoff for i in x) / len(x)
 
 
@@ -423,6 +441,9 @@ def sort_abundance(exp: Experiment, subgroup=None, **kwargs) -> Experiment:
         for k, v in subgroup.items():
             select_i = np.logical_and(select, exp.sample_metadata[k].isin(v).values)
             select = select & select_i
+    if exp.negatives:
+        if 'key' not in kwargs:
+            kwargs['key'] = 'mean'
     return exp.sort_by_data(axis=1, subset=select, **kwargs)
 
 
