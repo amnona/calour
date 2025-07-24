@@ -96,7 +96,8 @@ def join_fields(df, field1, field2, new_field=None, sep='_', pad=None):
         new_field = field1 + sep + field2
 
     if new_field in df.columns:
-        raise ValueError('new field name %s already exists in df. Please use different new_field value' % new_field)
+        logger.warning('new field %s already exists in df. Overwriting' % new_field)
+        # raise ValueError('new field name %s already exists in df. Please use different new_field value' % new_field)
 
     col1 = df[field1].astype(str)
     max1 = col1.str.len().max()

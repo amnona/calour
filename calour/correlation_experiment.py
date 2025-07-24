@@ -97,6 +97,9 @@ class CorrelationExperiment(Experiment):
         '''
         if 'sparse' not in kwargs:
             kwargs['sparse'] = False
+        # can contain negative correlation values
+        if 'negatives' not in kwargs:
+            kwargs['negatives'] = True
         super().__init__(*args, **kwargs)
         if qvals is not None:
             if self.data.shape != qvals.shape:

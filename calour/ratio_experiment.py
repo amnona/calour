@@ -86,6 +86,14 @@ class RatioExperiment(Experiment):
     Experiment
     '''
     def __init__(self, *args, **kwargs):
+        # ratios can be negative, so we set negatives=True by default
+        if 'negatives' not in kwargs:
+            kwargs['negatives'] = True
+
+        # RatioExperiment is always sparse=False, so we set it here
+        if 'sparse' not in kwargs:
+            kwargs['sparse'] = False
+
         super().__init__(*args, **kwargs)
 
     def heatmap(self, *args, **kwargs):

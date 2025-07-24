@@ -73,6 +73,9 @@ class Experiment:
     sparse : bool
         store the data array in :class:`scipy.sparse.csr_matrix`
         or :class:`numpy.ndarray`
+    negatives: bool
+        whether the data contains negative values. If True, it is assumed that the data
+        contains negative values, and some functions will change behavior accordingly (when removing 0 values, etc.)
     normalized : int
         the normalization factor. it is zero if not normalized
     info : dict
@@ -89,7 +92,7 @@ class Experiment:
     MS1Experiment
     '''
     def __init__(self, data, sample_metadata, feature_metadata=None, databases=(),
-                 info=None, description='', sparse=True):
+                 info=None, description='', sparse=True, negatives=False):
         self.data = data
 
         if isinstance(sample_metadata, list):
@@ -109,6 +112,7 @@ class Experiment:
         self.validate()
         self.description = description
         self.normalized = 0
+        self.negatives = negatives
         # the function calling history list
         self._call_history = []
         # whether to log to calling history
