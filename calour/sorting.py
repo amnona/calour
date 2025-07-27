@@ -231,6 +231,7 @@ def cluster_features(exp: Experiment, cutoff=0, inplace=False) -> Experiment:
         newexp = exp.filter_sum_abundance(cutoff, inplace=inplace)
         steps = [log_n, standardize]
     else:
+        newexp = exp.copy()
         steps = [standardize]
         if cutoff > 0:
             logger.warning('cutoff is set to %s, but experiment contains negative values. cutoff will not be applied.' % cutoff)

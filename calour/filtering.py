@@ -683,3 +683,28 @@ def filter_ids(exp: Experiment, ids, axis=1, negate=False, inplace=False) -> Exp
         ids_pos = np.setdiff1d(np.arange(exp.shape[axis]), ids_pos, assume_unique=True)
 
     return exp.reorder(ids_pos, axis=axis, inplace=inplace)
+
+
+def filter_nans(exp: Experiment, threshold=0, axis=1) -> Experiment:
+    '''Remove features (or samples) with not enough non-NaN values.
+    
+    Parameters
+    ----------
+    exp : calour.Experiment
+        The experiment to filter.
+    threshold : int, optional
+        The minimum number of non-NaN values required to keep a feature or sample.
+        Default is 0.
+    axis : int, optional
+        The axis along which to apply the filter. 0 for features, 1 for samples.
+        
+    Returns
+    -------
+    calour.Experiment
+        A new experiment with the filtered features or samples.
+    '''
+    num_pres = np.sum(~np.isnan(exp.data),axis=1-axis)
+    keep = num_pres>threshold
+    logger.info(f'Removing {np.sum(~keep)} features/samples with  {threshold} non-NaN values')
+
+    return exp.reorder(keep,axis=axis)
