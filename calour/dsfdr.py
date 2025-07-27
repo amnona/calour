@@ -14,9 +14,19 @@ def rankdata(data):
     logger.debug('ranking the data')
     rdata = np.zeros(np.shape(data))
     for crow in range(np.shape(data)[0]):
-        rdata[crow, :] = sp.stats.rankdata(data[crow, :])
+        rdata[crow, :] = sp.stats.rankdata(data[crow, :], nan_policy='omit')
     return rdata
 
+
+def percentiledata(data):
+    '''Calculate the percentile rank for each feature in the data.
+    Ignore NaN values in the calculation.
+    '''
+    logger.debug('percentiling the data')
+    rdata = np.zeros(np.shape(data))
+    for crow in range(np.shape(data)[0]):
+        rdata[crow, :] = sp.stats.rankdata(data[crow, :], nan_policy='omit') / np.sum(np.isfinite(data[crow, :]))
+    return rdata
 
 def log2data(data):
     logger.debug('log2 transforming the data')
@@ -108,6 +118,7 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
         transformation to apply to the data before caluculating
         the test statistic
         'rankdata' : rank transfrom each feature
+        'percentiledata' : percentile rank for each feature
         'log2data' : calculate log2 for each feature using minimal cutoff of 2
         'normdata' : normalize the data to constant sum per samples
         'binarydata' : convert to binary absence/presence
@@ -187,6 +198,8 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
     # transform the data
     if transform_type == 'rankdata':
         data = rankdata(data)
+    elif transform_type == 'percentiledata':
+        data = percentiledata(data)
     elif transform_type == 'log2data':
         data = log2data(data)
     elif transform_type == 'binarydata':
@@ -320,6 +333,24 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
                 rlabels = shuffler(label_nonzero)
                 permlabels[:, cperm] = rlabels
             u[i, :] = np.abs(np.dot(sample_nonzero, permlabels))
+
+    elif method == 'nan-mean-rank':
+        t = np.zeros([numbact])
+        tstat = np.zeros([numbact])
+        u = np.zeros([numbact, numperm])
+        for i in range(numbact):
+            index = np.isfinite(data[i, :])
+            label_no_nan = labels[index]
+            data_no_nan = data[i, :][index]
+            if np.sum(label_no_nan == 0) == 0 or np.sum(label_no_nan == 1) == 0:
+                continue
+            tstat[i] = np.mean(data_no_nan[label_no_nan == 1]) - np.mean(data_no_nan[label_no_nan == 0])
+            permlabels = np.zeros([len(label_no_nan), numperm])
+            for cperm in range(numperm):
+                rlabels = shuffler(label_no_nan)
+                permlabels[:, cperm] = rlabels
+                u[i, cperm] = np.abs(np.mean(data_no_nan[rlabels == 1]) - np.mean(data_no_nan[rlabels == 0]))
+        t = np.abs(tstat)
 
     elif isinstance(method, types.FunctionType):
         # call the user-defined function of statistical test

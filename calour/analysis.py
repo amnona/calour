@@ -57,7 +57,6 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
         The field to test by. Values are converted to numeric.
     method : str or function
         the method to use for the statistic. options:
-
         * 'spearman': spearman correlation
         * 'pearson': pearson correlation
         * callable: the callable to calculate the statistic (its input are
@@ -71,6 +70,7 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
     transform : str or None
         transformation to apply to the data before caluculating the statistic:
         * 'rankdata' : rank transfrom each OTU reads
+        * 'percentiledata' : percentile rank for each feature
         * 'log2data' : calculate log2 for each OTU using minimal cutoff of 2
         * 'normdata' : normalize the data to constant sum per samples
         * 'binarydata' : convert to binary absence/presence
@@ -130,6 +130,10 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
     if np.std(labels) == 0:
         raise ValueError('Field %s contains only one unique value. Cannot calculate correlation.' % field)
 
+    # check if there are NaNs in the data, warn if using a method that does not handle NaNs
+    if np.sum(np.isnan(data[:])) > 0:
+        logger.warning('Data contains Nan values. Convert Nan to 0 and use nonzero=True')
+
     # change the method if we have nonzero
     if nonzero:
         if method == 'spearman':
@@ -170,12 +174,14 @@ def diff_abundance(exp: Experiment, field, val1, val2=None, method='meandiff', t
 
         * 'meandiff' : mean(A)-mean(B)
         * 'stdmeandiff' : (mean(A)-mean(B))/(std(A)+std(B))
+        * 'nan-mean-rank' : mean rank(A)-mean rank(B) (ignores NaN values) - slower but handles missing values
         * callable : use this to calculate the statistic (input is data,labels, output is array of float)
 
     transform : str or None
         transformation to apply to the data before caluculating the statistic.
 
         * 'rankdata' : rank transfrom each OTU reads
+        * 'percentiledata' : percentile rank for each feature
         * 'log2data' : calculate log2 for each OTU using minimal cutoff of 2
         * 'normdata' : normalize the data to constant sum per samples
         * 'binarydata' : convert to binary absence/presence
@@ -252,6 +258,11 @@ def diff_abundance(exp: Experiment, field, val1, val2=None, method='meandiff', t
         raise ValueError('No samples in field: %s found with val1: %s' % (field, grp1))
 
     logger.info('%d samples with value 1 (%s), %d samples with value2 (%s)' % (np.sum(labels), grp1, len(cexp.sample_metadata) - np.sum(labels), grp2))
+
+    # check if there are Nans in the values, warn if using a method that does not handle NaNs
+    if np.sum(np.isnan(data[:])) > 0:
+        if method not in ['nan-mean-rank']:
+            logger.warning('Data contains Nan values. Use method="nan-mean-rank" to handle NaNs, or remove the NaN values from the data before calling this function')
 
     keep, odif, pvals, qvals = dsfdr.dsfdr(data, labels, method=method, transform_type=transform, alpha=alpha, numperm=numperm, fdr_method=fdr_method, shuffler=shuffler, random_seed=random_seed)
     logger.info('number of higher in {}: {}. number of higher in {} : {}. total {}'.format(
