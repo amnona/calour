@@ -145,7 +145,7 @@ def sort_centroid(exp: Experiment, transform=log_n, inplace=False, **kwargs) -> 
 
 @ds.get_sections(base='sorting.cluster_data')
 def cluster_data(exp: Experiment, transform=None, axis=1,
-                 metric='euclidean', inplace=False, **kwargs) -> Experiment:
+                 metric='euclidean', inplace=False, filter_nans=False, **kwargs) -> Experiment:
     r'''Cluster the samples/features.
 
     Reorder the features/samples so that ones with similar behavior (pattern
@@ -166,6 +166,8 @@ def cluster_data(exp: Experiment, transform=None, axis=1,
     inplace : bool, optional
         False (default) to create a copy.
         True to Replace data in exp.
+    filter_nans : bool, optional
+        If True, replace NaN values in the data with 0 before clustering.
     kwargs : dict, optional
         keyword arguments passing to the transformer.
 
@@ -181,11 +183,13 @@ def cluster_data(exp: Experiment, transform=None, axis=1,
     '''
     logger.debug('clustering data on axis %s' % axis)
 
-    # if data contains Nan, we change it to 0 before clustering
-    old_data = exp.get_data()
-    if np.any(np.isnan(old_data)):
-        logger.info('data contains NaN values, replacing them with 0 for clustering (this does not change the data in the experiment)')
-        exp.data = np.nan_to_num(old_data, copy=False)
+    # if data contains Nan, we change it to 0 before clustering (we do it only for non-sparse data)
+    if filter_nans:
+        old_data = exp.data
+        data = exp.get_data(sparse=False)
+        if np.any(np.isnan(data)):
+            logger.info('data contains NaN values, replacing them with 0 for clustering (this does not change the data in the experiment)')
+            exp.data = np.nan_to_num(data, copy=False)
 
     if transform is None:
         data = exp.get_data(sparse=False)
@@ -194,7 +198,8 @@ def cluster_data(exp: Experiment, transform=None, axis=1,
         data = transform(exp, **kwargs, inplace=False).get_data(sparse=False)
 
     # restore the original data
-    exp.data = old_data
+    if filter_nans:
+        exp.data = old_data
 
     if axis == 1:
         data = data.T

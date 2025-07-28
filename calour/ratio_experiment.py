@@ -123,6 +123,22 @@ class RatioExperiment(Experiment):
             kwargs['clim'] = (-clim_val, clim_val)
         super().heatmap(*args, **kwargs)
 
+    def cluster_data(self, *args, **kwargs):
+        '''Cluster the data in the ratio experiment.
+
+        This method accepts exactly the same parameters as input with
+        its parent class method and does exactly the sample clustering.
+        The only difference is that by default, it replaces NaN values in the data with 0 before clustering.
+
+        See Also
+        --------
+        Experiment.cluster_data
+
+        '''
+        if 'filter_nans' not in kwargs:
+            kwargs['filter_nans'] = True
+        return super().cluster_data(*args, **kwargs)
+
     @classmethod
     def from_exp(self, exp, common_field, group_field, value1, value2=None, threshold=5, sample_md_suffix=None):
         '''Create a RatioExperiment object from two groups of samples in an experiment.
