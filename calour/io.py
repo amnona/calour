@@ -916,7 +916,7 @@ def _create_biom_table_from_exp(exp, add_metadata='taxonomy', to_list=False):
             if to_list:
                 for k, v in md.items():
                     # if isinstance(v[add_metadata], str):
-                    v[add_metadata] = v[add_metadata].split(';')
+                    v[add_metadata] = str(v[add_metadata]).split(';')
             table.add_metadata(md, axis='observation')
         else:
             logger.info('Metadata field %s not found. Saving biom table without metadata' % add_metadata)
