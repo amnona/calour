@@ -180,11 +180,21 @@ def cluster_data(exp: Experiment, transform=None, axis=1,
 
     '''
     logger.debug('clustering data on axis %s' % axis)
+
+    # if data contains Nan, we change it to 0 before clustering
+    old_data = exp.get_data()
+    if np.any(np.isnan(old_data)):
+        logger.info('data contains NaN values, replacing them with 0 for clustering (this does not change the data in the experiment)')
+        exp.data = np.nan_to_num(old_data, copy=False)
+
     if transform is None:
         data = exp.get_data(sparse=False)
     else:
         logger.debug('transforming data using %r' % transform)
         data = transform(exp, **kwargs, inplace=False).get_data(sparse=False)
+
+    # restore the original data
+    exp.data = old_data
 
     if axis == 1:
         data = data.T
