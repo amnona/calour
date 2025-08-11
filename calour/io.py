@@ -811,7 +811,7 @@ def save(exp: Experiment, prefix, fmt='hdf5'):
     exp.feature_metadata.to_csv('%s_feature.txt' % prefix, sep='\t')
 
 
-def save_biom(exp: Experiment, f, fmt='hdf5', add_metadata='taxonomy'):
+def save_biom(exp: Experiment, f, fmt='hdf5', add_metadata='taxonomy', force_ascii=True):
     '''Save experiment to biom format
 
     Parameters
@@ -826,11 +826,13 @@ def save_biom(exp: Experiment, f, fmt='hdf5', add_metadata='taxonomy'):
     add_metadata : str or None, optional
         add metadata column from `Experiment.feature_metadata` to biom table.
         Don't add if it is `None`.
-
+    force_ascii : bool, optional
+        True (default) to force the sample and feature ids to be ascii encoded.
+        False to keep the original encoding
     '''
     logger.debug('save biom table to file %s format %s' % (f, fmt))
     if fmt == 'hdf5':
-        tab = _create_biom_table_from_exp(exp, add_metadata, to_list=True)
+        tab = _create_biom_table_from_exp(exp, add_metadata, to_list=True, force_ascii=force_ascii)
         with biom.util.biom_open(f, 'w') as f:
             tab.to_hdf5(f, "calour")
     elif fmt == 'json':
@@ -886,7 +888,7 @@ def save_fasta(exp: Experiment, f, seqs=None, header='seq'):
     logger.debug('wrote fasta file with %d sequences. %d sequences skipped' % (len(seqs) - num_skipped, num_skipped))
 
 
-def _create_biom_table_from_exp(exp, add_metadata='taxonomy', to_list=False):
+def _create_biom_table_from_exp(exp, add_metadata='taxonomy', to_list=False, force_ascii=True):
     '''Create a biom table from an experiment
 
     Parameters
@@ -897,6 +899,10 @@ def _create_biom_table_from_exp(exp, add_metadata='taxonomy', to_list=False):
         Don't add if it is `None`.
     to_list: bool, optional
         True to convert the metadata field to list (for hdf5)
+        False to keep it as a string (for json)
+    force_ascii: bool, optional
+        True (default) to force the sample and feature ids to be ascii encoded.
+        False to keep the original encoding
 
     Returns
     -------
@@ -905,6 +911,11 @@ def _create_biom_table_from_exp(exp, add_metadata='taxonomy', to_list=False):
     '''
     features = exp.feature_metadata.index
     samples = exp.sample_metadata.index
+    if force_ascii:
+        # convert the sample and feature ids to ascii
+        features = [str(x).encode('ascii', 'ignore').decode('ascii') for x in features]
+        samples = [str(x).encode('ascii', 'ignore').decode('ascii') for x in samples]
+
     table = biom.table.Table(exp.data.transpose(), features, samples, type="OTU table")
     # and add metabolite name as taxonomy:
     if add_metadata is not None:
