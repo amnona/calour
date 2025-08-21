@@ -249,7 +249,9 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
         # so we normalize by the max value in each row and then round to 9 digits
         max_vals = np.max(np.abs(u), axis=1)
         if np.any(max_vals == 0):
-            raise ValueError('data contains features with 0 values in all samples')
+            logger.warning('data contains features with 0 values in all samples')
+            max_vals[max_vals == 0] = 1
+            # raise ValueError('data contains features with 0 values in all samples')
         u = u / max_vals[:,np.newaxis]
         u = np.round(u, 9)
 
