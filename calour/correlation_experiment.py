@@ -350,7 +350,7 @@ class CorrelationExperiment(Experiment):
         return exp
 
     @classmethod
-    def from_feature_metadata_correlation(self, exp: Experiment, cluster_results=True, **kwargs) -> 'CorrelationExperiment':
+    def from_feature_metadata_correlation(self, exp: Experiment, cluster_results=True, fdr='bh', **kwargs) -> 'CorrelationExperiment':
         '''Calculate the correlations between each feature and each sample metadata column.
 
         This function will return a new CorrelationExperiment with the correlations between each feature and each sample metadata column.
@@ -363,6 +363,10 @@ class CorrelationExperiment(Experiment):
         cluster_results : bool, optional
             If True, will cluster the results by features and samples.
             If False, will not cluster the results.
+        fdr : str or None, optional
+            The method to use for FDR correction. If None, will not apply FDR correction (see `scipy.stats.false_discovery_control`).
+            'bh' : Benjamini-Hochberg method
+            'by' : Benjamini-Yekutieli method
 
         Keyword Arguments
         -----------------
@@ -405,6 +409,10 @@ class CorrelationExperiment(Experiment):
         # create a new CorrelationExperiment with the correlations
         corrs=np.array(corrs)
         pvals=np.array(pvals)
+
+        if fdr is not None:
+            pvals = scipy.stats.false_discovery_control(pvals.flatten(),method=fdr).reshape(pvals.shape)
+
         cor_exp=CorrelationExperiment(corrs,pd.DataFrame({'field':fields}),exp.feature_metadata,qvals=pvals)
 
         # remove columns with all NaN values

@@ -1,5 +1,9 @@
 # calour changelog
 
+## Version 2025.08.25
+New features:
+* add FDR correction to CorrelationExperiment.from_feature_metadata_correlation() and set it to 'bh' by default
+
 ## Version 2025.2.5
 New features:
 * add filter_qvals() method to correlation experiment
