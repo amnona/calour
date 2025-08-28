@@ -33,6 +33,13 @@ from .analysis import _new_experiment_from_pvals, _CALOUR_DIRECTION, _CALOUR_STA
 
 logger = getLogger(__name__)
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterator, *args, **kwargs):
+        return iterator
+    logger.info('tqdm not installed, progress bar will not be shown')
+
 
 class CorrelationExperiment(Experiment):
     '''This class stores a correlation matrix data and corresponding analysis methods.
@@ -299,7 +306,7 @@ class CorrelationExperiment(Experiment):
         '''
         pvals=np.ones([len(df1.columns),len(df2.columns)])
         corrs=np.zeros([len(df1.columns),len(df2.columns)])
-        for idx1,r in enumerate(df1.columns):
+        for idx1,r in tqdm(enumerate(df1.columns), desc='Calculating correlations'):
             for idx2,c in enumerate(df2.columns):
                 c1=df1[r].values
                 c2=df2[c].values
@@ -350,6 +357,44 @@ class CorrelationExperiment(Experiment):
         return exp
 
     @classmethod
+    def from_data(self, exp:Experiment, cluster_results=True, fdr='bh', axis='f'):
+        '''Create a CorrelationExperiment from an Experiment object by testing correlations between all features or samples
+        
+        Parameters
+        ----------
+        '''
+        if axis == 'f' or axis == 0:
+            smd = exp.feature_metadata
+        elif axis == 's' or axis == 1:
+            smd = exp.sample_metadata
+        else:
+            raise ValueError('Invalid axis: %s (use "s" or "f")' % axis)
+        
+        lcor = np.zeros((len(smd),len(smd)))
+        pvals = np.zeros((len(smd),len(smd)))
+        for i in tqdm(range(len(smd)), desc='Calculating correlations'):
+            for j in range(i,len(smd)):
+                if axis=='f' or axis==0:
+                    ccorr = scipy.stats.spearmanr(exp.data[:,i],exp.data[:,j])
+                else:
+                    ccorr = scipy.stats.spearmanr(exp.data[i,:],exp.data[j,:])
+                lcor[i,j] = ccorr.correlation
+                lcor[j,i] = ccorr.correlation
+                pvals[i,j] = ccorr.pvalue
+                pvals[j,i] = ccorr.pvalue
+
+        if fdr is not None:
+            pvals = scipy.stats.false_discovery_control(pvals.flatten(),method=fdr).reshape(pvals.shape)
+     
+        cor_exp=CorrelationExperiment(lcor,smd,smd,qvals=pvals)
+
+        if cluster_results:
+            # cluster the results by features and samples
+            cor_exp = cor_exp.cluster_data(axis='f')
+            cor_exp = cor_exp.cluster_data(axis='s')
+        return cor_exp
+
+    @classmethod
     def from_feature_metadata_correlation(self, exp: Experiment, cluster_results=True, fdr='bh', **kwargs) -> 'CorrelationExperiment':
         '''Calculate the correlations between each feature and each sample metadata column.
 
@@ -382,7 +427,7 @@ class CorrelationExperiment(Experiment):
         corrs=[]
         pvals=[]
         fields=[]
-        for cfield in exp.sample_metadata.columns:
+        for cfield in tqdm(exp.sample_metadata.columns, desc='Calculating correlations'):
             # test if the field is numeric
             if not pd.api.types.is_numeric_dtype(exp.sample_metadata[cfield]):
                 logger.debug('field %s is not numeric, skipping' % cfield)
