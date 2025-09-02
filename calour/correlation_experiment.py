@@ -317,7 +317,8 @@ class CorrelationExperiment(Experiment):
                     if np.isnan(ccor.correlation):
                         pvals[idx1][idx2] = 1
                         corrs[idx1][idx2] = 0
-                except:
+                except Exception as e:
+                    logger.debug('Error calculating correlation between %s and %s: %s' % (r, c, e))
                     pvals[idx1][idx2] = 1
                     corrs[idx1][idx2] = 0
         return corrs,pvals
