@@ -489,6 +489,8 @@ def _to_list(x):
         return [x]
     if isinstance(x, Sequence):
         return x
+    if isinstance(x,np.ndarray):
+        return list(x)
     return [x]
 
 

@@ -1,5 +1,10 @@
 # calour changelog
 
+## Version 2025.09.25
+New features:
+* Modify _to_list so now filtering (such as filter_samples) works with np.array in the values
+* Add add_agg_fields parameter to aggregate_by_metadata (default=True). When False, the function works faster (but does not create the aggregated fields in the metadata)
+
 ## Version 2025.08.25
 New features:
 * add FDR correction to CorrelationExperiment.from_feature_metadata_correlation() and set it to 'bh' by default

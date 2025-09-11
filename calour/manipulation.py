@@ -111,7 +111,7 @@ def join_metadata_fields(exp: Experiment, field1, field2, new_field=None,
     return exp
 
 
-def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=False) -> Experiment:
+def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=False, add_agg_fields=True) -> Experiment:
     '''Aggregate all samples or features of the same group.
 
     Group the samples (axis=0) or features (axis=1) that have the same
@@ -142,6 +142,10 @@ def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=Fa
         0 or 's' (default) to aggregate samples; 1 or 'f' to aggregate features
     inplace : bool, optional
         False (default) to create new Experiment, True to perform inplace
+    add_agg_fields : bool, optional
+        If True (default), add a new metadata fields '_calour_merge_number', '_calour_merge_ids'
+        to store the number and ids of samples/features merged to create each.
+        If False, do not add these two metadata fields.
 
     Returns
     -------
@@ -186,8 +190,11 @@ def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=Fa
                 newdat = cdata[:, rand_pos]
         else:
             raise ValueError('Unknown aggregation method: %r' % agg)
-        merge_number[i] = pos.sum()
-        merge_ids[i] = ';'.join(col.index[pos].astype(str))
+
+        if add_agg_fields:
+            merge_number[i] = pos.sum()
+            merge_ids[i] = ';'.join(col.index[pos].astype(str))
+
         replace_pos = np.where(pos)[0][0]
         keep_pos[i] = replace_pos
 
@@ -200,8 +207,10 @@ def aggregate_by_metadata(exp: Experiment, field, agg='mean', axis=0, inplace=Fa
         metadata = exp.sample_metadata
     else:
         metadata = exp.feature_metadata
-    metadata['_calour_merge_number'] = merge_number
-    metadata['_calour_merge_ids'] = merge_ids
+
+    if add_agg_fields:
+        metadata['_calour_merge_number'] = merge_number
+        metadata['_calour_merge_ids'] = merge_ids
 
     return exp
 
