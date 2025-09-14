@@ -1,6 +1,10 @@
 # calour changelog
 
-## Version 2025.09.25
+## Version 2025.09.14
+New fetures:
+* Add support for single string in filter_by_metadata (no need to supply list)
+
+## Version 2025.09.11
 New features:
 * Modify _to_list so now filtering (such as filter_samples) works with np.array in the values
 * Add add_agg_fields parameter to aggregate_by_metadata (default=True). When False, the function works faster (but does not create the aggregated fields in the metadata)

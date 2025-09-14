@@ -205,6 +205,7 @@ def filter_by_metadata(exp: Experiment, field, select, axis=0,
     elif select is None:
         select = metadata[field].notnull()
     else:
+        select = _to_list(select)
         select = metadata[field].isin(select).values
 
     if negate is True:
