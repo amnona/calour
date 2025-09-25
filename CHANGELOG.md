@@ -1,5 +1,9 @@
 # calour changelog
 
+## Version 2025.09.25
+Bug Fixes:
+* Fix md5 error when creating new experiment with sample/feature metadata columns containing lists
+
 ## Version 2025.09.14
 New fetures:
 * Add support for single string in filter_by_metadata (no need to supply list)

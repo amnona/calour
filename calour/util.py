@@ -340,8 +340,13 @@ def get_dataframe_md5(df):
     '''
     if df is None:
         return None
+    new_df = df.copy()
+    # convert all non-hashable types to string
+    for c in new_df.columns:
+        if not np.issubdtype(new_df[c].dtype, np.number):
+            new_df[c] = new_df[c].astype(str)
     logger.debug('getting dataframe md5 for %d rows' % len(df))
-    datmd5 = hashlib.md5(hash_pandas_object(df).values)
+    datmd5 = hashlib.md5(hash_pandas_object(new_df).values)
     datmd5 = datmd5.hexdigest()
     return datmd5
 
