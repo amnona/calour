@@ -227,7 +227,7 @@ def _get_md_from_biom(table):
     return md_df
 
 
-def _read_csv(fp, sample_in_row=False, sep=','):
+def _read_csv(fp, sample_in_row=False, sep=',', index_col=0):
     '''Read a csv file
 
     Parameters
@@ -259,7 +259,7 @@ def _read_csv(fp, sample_in_row=False, sep=','):
     # pandas to create an empty column at the end. This can cause bugs with the
     # normalization. so we remove it.
     table.dropna(axis='columns', how='all', inplace=True)
-    table.set_index(table.columns[0], drop=True, inplace=True)
+    table.set_index(table.columns[index_col], drop=True, inplace=True)
 
     if sample_in_row:
         table = table.transpose()
@@ -346,7 +346,7 @@ def _read_metadata(ids, f, kwargs):
 @ds.get_sections(base='io.read')
 def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
          description='', sparse=True,
-         data_file_type='biom', data_file_sep=',', sample_in_row=False,
+         data_file_type='biom', data_file_sep=',', sample_in_row=False, data_index_col=0,
          sample_id_proc=None, feature_id_proc=None,
          sample_metadata_kwargs=None, feature_metadata_kwargs=None,
          cls=Experiment,
@@ -382,6 +382,9 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         column delimitor for the data table if it is a 'csv' file.
     sample_in_row : bool, optional
         False if data table columns are sample, True if rows are samples
+    data_index_col : int, optional
+        which column in the data table to use as the index (sample names).
+        Default 0, meaning the first column is the index.
     sample_id_proc, feature_id_proc: callable, default=None
         If not `None`, modify each sample/feature id in the data table using
         the callable function. The callable accepts a list of str and
@@ -422,7 +425,7 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
     if data_file_type == 'biom':
         sid, fid, data, fmd = _read_biom(data_file, sample_in_row=sample_in_row)
     elif data_file_type == 'csv':
-        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep=data_file_sep)
+        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep=data_file_sep, index_col=data_index_col)
     elif data_file_type == 'qiime2':
         sid, fid, data, fmd = _read_qiime2_zip(data_file)
     elif data_file_type == 'tsv':
@@ -683,9 +686,18 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
                       'biom': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'biom'},
                       'openms': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'csv'},
                       'gnps-ms2': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'biom'}}
+    default_kwargs = {'mzmine2': {'data_file_sep': '\t', 'data_index_col': 2},
+                      'biom': {},
+                      'openms': {},
+                      'gnps-ms2': {}}
 
     if data_file_type not in default_params:
         raise ValueError('data_file_type %s not recognized. valid options are: %s' % (data_file_type, default_params.keys()))
+
+    # add the default kwargs according to file type, if not specified by user
+    for k, v in default_kwargs[data_file_type].items():
+        if k not in kwargs:
+            kwargs[k] = v
 
     # set the default params according to file type, if not specified by user
     if sample_in_row is None:
@@ -700,7 +712,7 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
                data_file_type=default_params[data_file_type]['ctype'], sparse=sparse,
                normalize=None, cls=MS1Experiment,
                sample_id_proc=lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep),
-               sample_in_row=sample_in_row, **kwargs)
+               sample_in_row=sample_in_row,**kwargs)
     # get the MZ/RT data
     if data_file_type == 'mzmine2':
         if 'row m/z' not in exp.sample_metadata.index:

@@ -1,9 +1,15 @@
 # calour changelog
 
 ## Version 2025.09.25
+New features:
+* Add data_index_col parameter to read() to enable using not the first column in the data file as the sampleID
+
 Bug Fixes:
 * Fix md5 error when creating new experiment with sample/feature metadata columns containing lists
 * Fix normalize_compositional to normalize the data prior to selecting the features to remove
+
+Incompatible changes:
+* Change the defaults for read_ms() with the 'mzmine2' type to use tab as the data separator and use the 3rd column as the sample id in the data file
 
 ## Version 2025.09.14
 New fetures:
