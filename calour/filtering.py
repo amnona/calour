@@ -564,6 +564,9 @@ def filter_mean_abundance(exp: Experiment, frac=0.01, field=None,
     filter_by_data
     filter_sum_abundance
     '''
+    if not exp.normalized:
+        raise ValueError('Experiment must be normalized first before using filter_mean_abundance')
+
     cutoff = exp.normalized * frac
 
     return exp.filter_by_data('abundance', axis=1, field=field, inplace=inplace,

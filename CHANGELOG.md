@@ -3,6 +3,7 @@
 ## Version 2025.09.25
 Bug Fixes:
 * Fix md5 error when creating new experiment with sample/feature metadata columns containing lists
+* Fix normalize_compositional to normalize the data prior to selecting the features to remove
 
 ## Version 2025.09.14
 New fetures:

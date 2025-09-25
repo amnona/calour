@@ -147,6 +147,8 @@ def normalize_compositional(exp: Experiment, frac=0.05, total=10000, inplace=Fal
     normalize_by_subset_features
 
     '''
+    if not exp.normalized:
+        exp = exp.normalize()
     comp_features = exp.filter_mean_abundance(frac)
     logger.info('ignoring %d features' % comp_features.shape[1])
     newexp = exp.normalize_by_subset_features(comp_features.feature_metadata.index.values,
