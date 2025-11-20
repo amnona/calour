@@ -281,6 +281,7 @@ def _read_metadata(ids, f, kwargs):
     f : str
         file path of metadata
     kwargs : dict
+        index_col: the column contaning the ids (0 by default) - e.g. for ms_experiment mzmine can use 2
         keyword argument passed to :func:`pandas.read_csv`
 
     Returns

@@ -1,5 +1,11 @@
 # calour changelog
 
+## Version 2025.11.20
+New features:
+* add keep_low parameter to filtering.downsample(), so now has option to keep sample groups with total below the threshold instead of dropping them.
+* add index_col parameter to calour.read() to define which sample_metadata file column has the unique sample index
+* add add_noise parameter (with non-zero default) to CorrelationExperiment.from_dataframes() and CorrelationExperiment.from_data(), to fix approximation error when data contains many identical values.
+
 ## Version 2025.09.25
 New features:
 * Add data_index_col parameter to read() to enable using not the first column in the data file as the sampleID

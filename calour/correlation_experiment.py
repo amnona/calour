@@ -288,15 +288,17 @@ class CorrelationExperiment(Experiment):
             logger.debug('removed %d values with qval > %f' % (np.sum(self.qvals.data >= threshold), threshold))
         return exp
 
-    def _calculate_corr_matrix(df1, df2):
+    def _calculate_corr_matrix(df1, df2, add_noise=1E-6):
         '''Calculate the spearman correlation matrix between all columns of two DataFrames
         Ignores non-numeric values
 
         Parameters
         ----------
-        df : pandas.DataFrame
-            The DataFrame to calculate the correlation matrix for
-            
+        df1, df2 : pandas.DataFrame
+            The DataFrames to calculate the correlation matrix for
+        add_noise : float
+            The amount of noise to add to the data to avoid approximation errors when there are many identical values
+
         Returns
         -------
         corrs : numpy.ndarray
@@ -311,6 +313,10 @@ class CorrelationExperiment(Experiment):
                 c1=df1[r].values
                 c2=df2[c].values
                 try:
+                    if add_noise > 0:
+                        # add a small amount of noise to avoid approximation errors when there are many identical values
+                        c1 = c1 + np.random.normal(0, add_noise, size=c1.shape)
+                        c2 = c2 + np.random.normal(0, add_noise, size=c2.shape)
                     ccor = scipy.stats.spearmanr(c1,c2,nan_policy='omit')
                     pvals[idx1][idx2] = ccor.pvalue
                     corrs[idx1][idx2] = ccor.correlation
@@ -324,7 +330,7 @@ class CorrelationExperiment(Experiment):
         return corrs,pvals
 
     @classmethod
-    def from_dataframes(self, df1: pd.DataFrame, df2: pd.DataFrame|None = None):
+    def from_dataframes(self, df1: pd.DataFrame, df2: pd.DataFrame|None = None, add_noise=1E-6) -> 'CorrelationExperiment':
         '''Create a CorrelationExperiment from a pandas DataFrame (such as the experiment sample_metadata)
         Calculates the correlations between all dataframe columns
 
@@ -335,6 +341,8 @@ class CorrelationExperiment(Experiment):
         df2 : pandas.DataFrame
             The second DataFrame to calculate the correlation matrix for
             If None, will use df1
+        add_noise : float
+            The amount of noise to add to the data to avoid approximation errors when there are many identical values
 
         Returns
         -------
@@ -347,7 +355,7 @@ class CorrelationExperiment(Experiment):
         else:
             description = 'correlation from 2 dataframes'
 
-        corrs,pvals = self._calculate_corr_matrix(df1, df2)
+        corrs,pvals = self._calculate_corr_matrix(df1, df2, add_noise=add_noise)
         new_smd = pd.DataFrame(index=df1.columns)
         new_fmd = pd.DataFrame(index=df2.columns)
         new_smd['SampleID']=new_smd.index.values
@@ -358,7 +366,7 @@ class CorrelationExperiment(Experiment):
         return exp
 
     @classmethod
-    def from_data(self, exp:Experiment, cluster_results=True, fdr='bh', axis='f'):
+    def from_data(self, exp:Experiment, cluster_results=True, fdr='bh', axis='f', add_noise=1E-6) -> 'CorrelationExperiment':
         '''Create a CorrelationExperiment from an Experiment object by testing correlations between all features or samples
         
         Parameters
@@ -376,9 +384,18 @@ class CorrelationExperiment(Experiment):
         for i in tqdm(range(len(smd)), desc='Calculating correlations'):
             for j in range(i,len(smd)):
                 if axis=='f' or axis==0:
-                    ccorr = scipy.stats.spearmanr(exp.data[:,i],exp.data[:,j])
+                    vals1=exp.data[:,i]
+                    vals2=exp.data[:,j]
+                    # ccorr = scipy.stats.spearmanr(exp.data[:,i],exp.data[:,j])
                 else:
-                    ccorr = scipy.stats.spearmanr(exp.data[i,:],exp.data[j,:])
+                    vals1=exp.data[i,:]
+                    vals2=exp.data[j,:]
+                    # ccorr = scipy.stats.spearmanr(exp.data[i,:],exp.data[j,:])
+                if add_noise > 0:
+                    # add a small amount of noise to avoid approximation errors when there are many identical values
+                    vals1 = vals1 + np.random.normal(0, add_noise, size=vals1.shape)
+                    vals2 = vals2 + np.random.normal(0, add_noise, size=vals2.shape)
+                ccorr = scipy.stats.spearmanr(vals1,vals2)
                 lcor[i,j] = ccorr.correlation
                 lcor[j,i] = ccorr.correlation
                 pvals[i,j] = ccorr.pvalue

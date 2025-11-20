@@ -49,7 +49,7 @@ logger = getLogger(__name__)
 
 
 def downsample(exp: Experiment, field, axis=0, keep=None,
-               inplace=False, random_seed=None) -> Experiment:
+               inplace=False, random_seed=None, keep_low=False) -> Experiment:
     '''Downsample the data set.
 
     This down samples all the samples/features to have the same number of
@@ -65,7 +65,7 @@ def downsample(exp: Experiment, field, axis=0, keep=None,
         0 or 's' (default) to filter samples; 1 or 'f' to filter features
     keep : int, default=None
         Downsample to keep samples/features per group. If a group has
-        samples/features smaller than ``keep``, the whole group is dropped.
+        samples/features smaller than ``keep``, the whole group is dropped unless keep_low is True.
         Default to downsample to minimal group size.
     inplace : bool, optional
     random_seed : int, np.radnom.Generator instance or None, optional, default=None
@@ -73,6 +73,9 @@ def downsample(exp: Experiment, field, axis=0, keep=None,
         If int, random_seed is the seed used by the random number generator;
         If Generator instance, random_seed is set to the random number generator;
         If None, then fresh, unpredictable entropy will be pulled from the OS
+    keep_low : bool, optional
+        If True, keep groups with size smaller than `keep` without downsampling them.
+        If False (default), drop groups with size smaller than `keep`.
 
     See Also
     --------
@@ -96,7 +99,7 @@ def downsample(exp: Experiment, field, axis=0, keep=None,
     return exp.reorder(keep, axis=axis, inplace=inplace)
 
 
-def _balanced_subsample(x, n=None, random_seed=None) -> np.ndarray:
+def _balanced_subsample(x, n=None, random_seed=None, keep_low=False) -> np.ndarray:
     '''subsample the array to have equal number count for each unique values.
 
     Parameters
@@ -104,6 +107,9 @@ def _balanced_subsample(x, n=None, random_seed=None) -> np.ndarray:
     x : array
     n : int. count
     random_seed : int, np.radnom.Generator instance or None, optional, default=None
+    keep_low : bool, optional
+        If True, keep groups with size smaller than `n` without downsampling them.
+        If False (default), drop groups with size smaller than `n`.
 
     Returns
     -------
@@ -119,6 +125,9 @@ def _balanced_subsample(x, n=None, random_seed=None) -> np.ndarray:
         if i_indice.shape[0] >= n:
             idx = rng.choice(i_indice, n, replace=False)
             keep[idx] = True
+        else:
+            if keep_low:
+                keep[i_indice] = True
     return keep
 
 
