@@ -1,5 +1,9 @@
 # calour changelog
 
+## Version 2025.11.23
+New features:
+* add 'mzmine4' to supported read_ms file types
+
 ## Version 2025.11.20
 New features:
 * add keep_low parameter to filtering.downsample(), so now has option to keep sample groups with total below the threshold instead of dropping them.
