@@ -227,7 +227,7 @@ def _get_md_from_biom(table):
     return md_df
 
 
-def _read_csv(fp, sample_in_row=False, sep=',', index_col=0):
+def _read_csv(fp, sample_in_row=False, sep=',', index_col=0, fail_on_nonnumeric=True):
     '''Read a csv file
 
     Parameters
@@ -239,6 +239,11 @@ def _read_csv(fp, sample_in_row=False, sep=',', index_col=0):
         False (default) if columns are samples (rows are features)
     sep : str, optional
         The separator between entries in the table
+    index_col : int or str, optional
+        The column to use as the index (default is 0)
+    fail_on_nonnumeric : bool, optional
+        If True (default), raise an error if non-numeric data is found in the table
+        If False, drop any non-numeric columns
 
     Returns
     -------
@@ -259,13 +264,29 @@ def _read_csv(fp, sample_in_row=False, sep=',', index_col=0):
     # pandas to create an empty column at the end. This can cause bugs with the
     # normalization. so we remove it.
     table.dropna(axis='columns', how='all', inplace=True)
-    table.set_index(table.columns[index_col], drop=True, inplace=True)
+    if isinstance(index_col, str):
+        table.set_index(index_col, drop=True, inplace=True)
+    else:
+        table.set_index(table.columns[index_col], drop=True, inplace=True)
 
     if sample_in_row:
         table = table.transpose()
         logger.debug('transposed table')
+
+    # drop any non-numeric columns
+    if not fail_on_nonnumeric:
+        # replace nans with 0
+        table.fillna(0, inplace=True)
+        numeric_table = table.apply(pd.to_numeric, errors='coerce')
+        non_numeric_cols = table.columns[numeric_table.isnull().any()].tolist()
+        if non_numeric_cols:
+            logger.info('Dropping %d non-numeric columns from data table %s' % (len(non_numeric_cols), fp))
+            logger.debug('Dropped columns: %r' % (non_numeric_cols))
+        table = numeric_table.drop(columns=non_numeric_cols)
+
     sid = table.columns
     fid = table.index
+
     data = table.values.astype(float).transpose()
     logger.info('loaded %d samples, %d features' % data.shape)
     return sid, fid, data
@@ -349,7 +370,7 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
          description='', sparse=True,
          data_file_type='biom', data_file_sep=',', sample_in_row=False, data_index_col=0,
          sample_id_proc=None, feature_id_proc=None,
-         sample_metadata_kwargs=None, feature_metadata_kwargs=None,
+         sample_metadata_kwargs=None, feature_metadata_kwargs=None, fail_on_nonnumeric=True,
          cls=Experiment,
          *, normalize) -> Experiment:
     '''Read in an experiment.
@@ -383,9 +404,10 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         column delimitor for the data table if it is a 'csv' file.
     sample_in_row : bool, optional
         False if data table columns are sample, True if rows are samples
-    data_index_col : int, optional
+    data_index_col : int or str, optional
         which column in the data table to use as the index (sample names).
         Default 0, meaning the first column is the index.
+        if string, name of the column to use as index.
     sample_id_proc, feature_id_proc: callable, default=None
         If not `None`, modify each sample/feature id in the data table using
         the callable function. The callable accepts a list of str and
@@ -404,6 +426,9 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         utf-8. By default, it assumes the first column in the metadata
         files is sample/feature IDs and is read in as row index. To
         avoid this, please provide {'index_col': False}.
+    fail_on_nonnumeric : bool, optional
+        If True (default), raise an error if non-numeric data is found in the data table
+        If False, drop any non-numeric columns
     cls : ``class``, optional
         what class object to read the data into (:class:`.Experiment` by default)
     normalize : int or None
@@ -426,11 +451,11 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
     if data_file_type == 'biom':
         sid, fid, data, fmd = _read_biom(data_file, sample_in_row=sample_in_row)
     elif data_file_type == 'csv':
-        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep=data_file_sep, index_col=data_index_col)
+        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep=data_file_sep, index_col=data_index_col, fail_on_nonnumeric=fail_on_nonnumeric)
     elif data_file_type == 'qiime2':
         sid, fid, data, fmd = _read_qiime2_zip(data_file)
     elif data_file_type == 'tsv':
-        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep='\t')
+        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep='\t', fail_on_nonnumeric=fail_on_nonnumeric)
     else:
         raise ValueError('unkown data_file_type %s' % data_file_type)
 
@@ -568,6 +593,36 @@ def read_correlation(prefix, **kwargs) -> CorrelationExperiment:
     return exp
 
 
+def _sample_to_metadata(exp: Experiment, sampleID: str, smd_field: str, drop=False) -> Experiment:
+    '''Convert numbers in a given sampleID to a sample metadata column (and optionally drop the sample).
+
+    Parameters
+    ----------
+    exp : ca.Experiment
+        the experiment
+    sampleID : str
+        the sample name
+    smd_field : str
+        the sample metadata field to extract
+    drop : bool
+        if True, drop the sample from the experiment
+
+    Returns
+    -------
+    ca.Experiment
+        with the updated data and sample metadata
+    '''
+    if sampleID not in exp.sample_metadata.index:
+        logger.info('sampleID %s not found in sample metadata index' % sampleID)
+        return exp
+    sample_pos = exp.sample_metadata.index.get_loc(sampleID)
+    values = exp.get_data(sparse=False)[sample_pos, :].flatten()
+    exp.feature_metadata[smd_field] = values
+    if drop:
+        exp = exp.filter_ids([sampleID], axis='s', negate=True)
+    return exp
+
+
 @ds.with_indent(4)
 def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gnps_file=None,
             data_file_type='mzmine2', sample_in_row=None, direct_ids=None, get_mz_rt_from_feature_id=None,
@@ -615,7 +670,8 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         None (default) to not load
     data_file_type: str, optional
         the data file format. options include:
-
+        'mzmine4': load the mzmine4 output csv file
+            table is csv, columns are samples
         'mzmine2': load the mzmine2 output csv file.
             MZ and RT are obtained from this file.
             GNPS linking is direct via the unique id column.
@@ -686,11 +742,13 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
     default_params = {'mzmine2': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv'},
                       'biom': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'biom'},
                       'openms': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'csv'},
-                      'gnps-ms2': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'biom'}}
+                      'gnps-ms2': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'biom'},
+                      'mzmine4': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv'}}
     default_kwargs = {'mzmine2': {'data_file_sep': '\t', 'data_index_col': 2},
                       'biom': {},
                       'openms': {},
-                      'gnps-ms2': {}}
+                      'gnps-ms2': {},
+                      'mzmine4': {'data_file_sep': ',', 'data_index_col': 'compound_db_identity:compound_name', 'fail_on_nonnumeric': False}}
 
     if data_file_type not in default_params:
         raise ValueError('data_file_type %s not recognized. valid options are: %s' % (data_file_type, default_params.keys()))
@@ -729,6 +787,33 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         sample_pos = np.arange(len(exp.sample_metadata))
         sample_pos = list(set(sample_pos).difference([mzpos, rtpos]))
         exp = exp.reorder(sample_pos)
+    if data_file_type == 'mzmine4':
+        drop_cols = ['area', 'mz_range:min', 'mz_range:max', 'alignment_scores:rate', 'alignment_scores:align_extra_features', 'alignment_scores:weighted_distance_score', 'alignment_scores:mz_diff_ppm', 'alignment_scores:ion_mobility_absolute_error', 'rt_range:min', 'rt_range:max', 'intensity_range:min','intensity_range:max','compound_db_identity:compound_db_identity','id','height']
+        fmd_cols = ['rt', 'alignment_scores:aligned_features_n', 'alignment_scores:mz_diff', 'alignment_scores:rt_absolute_error', 'mz', 'compound_db_identity:compound_name', 'compound_db_identity:compound_annotation_score','compound_db_identity:precursor_mz','compound_db_identity:mz_diff_ppm','compound_db_identity:rt','compound_db_identity:database_name','compound_db_identity:rt_relative_error']
+        drop_endings = ['.mzML:rt','.mzML:mz_range:min','.mzML:mz_range:max','.mzML:fwhm','.mzML:rt_range:min','.mzML:rt_range:max','.mzML:feature_state','.mzML:mz','.mzML:intensity_range:min','.mzML:intensity_range:max','.mzML:asymmetry_factor','.mzML:tailing_factor','.mzML:height']
+        keep_endings = ['.mzML:area']
+        exp = exp.filter_ids(drop_cols, axis='s', negate=True)
+        for col in fmd_cols:
+            exp = _sample_to_metadata(exp, col, col, drop=True)
+        # drop all other columns ending with the drop_endings
+        drop_cols = []
+        for col in exp.sample_metadata.index:
+            for de in drop_endings:
+                if col.endswith(de) and col not in keep_endings:
+                    drop_cols.append(col)
+                    break
+        exp = exp.filter_ids(drop_cols, axis='s', negate=True)
+        # rename the keep_endings columns to remove the .mzML
+        renames = {}
+        for col in exp.sample_metadata.index:
+            for ke in keep_endings:
+                if col.endswith(ke):
+                    renames[col] = 'datafile:'.join(col.split('datafile:')[1:]).split(ke)[0]
+                    
+        if renames:
+            exp.sample_metadata.replace(renames, inplace=True)
+            # also replace the index values
+            exp.sample_metadata.index = [renames[x] if x in renames else x for x in exp.sample_metadata.index]
     if get_mz_rt_from_feature_id:
         logger.debug('getting MZ and RT from featureIDs')
         if direct_ids:
