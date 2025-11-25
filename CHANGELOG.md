@@ -1,4 +1,7 @@
 # calour changelog
+## Version 2025.11.25
+Bugfix:
+* update mzmine4 reading to support metadata
 
 ## Version 2025.11.23
 New features:

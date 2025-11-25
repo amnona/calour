@@ -302,7 +302,7 @@ def _read_metadata(ids, f, kwargs):
     f : str
         file path of metadata
     kwargs : dict
-        index_col: the column contaning the ids (0 by default) - e.g. for ms_experiment mzmine can use 2
+        index_col: the column (position (int) or name (str) ) contaning the ids (0 by default) - e.g. for ms_experiment mzmine can use 2
         keyword argument passed to :func:`pandas.read_csv`
 
     Returns
@@ -359,7 +359,7 @@ def _read_metadata(ids, f, kwargs):
                 if len(metadata.index.name) > 0:
                     column_str = metadata.index.name
             errmsg = '%d duplicate id values encountered in index column %s of mapping file %r:' % (dup.sum(), column_str, f)
-            errmsg += '\n%s' % set(metadata.index[dup].values)
+            errmsg += '\nvalues: %s' % set(metadata.index[dup].values)
             raise ValueError(errmsg)
         metadata = metadata.reindex(ids)
     return metadata
@@ -743,7 +743,7 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
                       'biom': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'biom'},
                       'openms': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'csv'},
                       'gnps-ms2': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'biom'},
-                      'mzmine4': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv'}}
+                      'mzmine4': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv', 'split_head': 'datafile:' }}
     default_kwargs = {'mzmine2': {'data_file_sep': '\t', 'data_index_col': 2},
                       'biom': {},
                       'openms': {},
@@ -766,11 +766,17 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
     if get_mz_rt_from_feature_id is None:
         get_mz_rt_from_feature_id = default_params[data_file_type]['get_mz_rt_from_feature_id']
 
+    if data_file_type == 'mzmine4':
+        split_id_proc = lambda x: _split_mzmine4_sample_ids(x)
+    else:
+        split_id_proc = lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep, split_head=default_params[data_file_type].get('split_head', None))
+
     logger.debug('Reading MS data (data table %s, map file %s, data_file_type %s)' % (data_file, sample_metadata_file, data_file_type))
     exp = read(data_file, sample_metadata_file, feature_metadata_file,
                data_file_type=default_params[data_file_type]['ctype'], sparse=sparse,
                normalize=None, cls=MS1Experiment,
-               sample_id_proc=lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep),
+            #    sample_id_proc=lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep, split_head=default_params[data_file_type].get('split_head', None)),
+               sample_id_proc=split_id_proc,
                sample_in_row=sample_in_row,**kwargs)
     # get the MZ/RT data
     if data_file_type == 'mzmine2':
@@ -808,7 +814,7 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         for col in exp.sample_metadata.index:
             for ke in keep_endings:
                 if col.endswith(ke):
-                    renames[col] = 'datafile:'.join(col.split('datafile:')[1:]).split(ke)[0]
+                    renames[col] = col.split(ke)[0]
                     
         if renames:
             exp.sample_metadata.replace(renames, inplace=True)
@@ -866,8 +872,21 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
     exp._call_history = ['{0}({1})'.format('read_amplicon', ','.join(param))]
     return exp
 
+def _split_mzmine4_sample_ids(sid, split_head='datafile:'):
+    '''Split the sample ids in the mzmine4 data table
+    
+    Parameters
+    ----------
 
-def _split_sample_ids(sid, split_char=None, ignore_split=('row m/z', 'row retention time')):
+    '''
+    if split_head is not None:
+        logger.info('removing sample id head %s from table sample ids. use "data_table_params={\'cut_sample_id_head\'=None}" to disable cutting.' % split_head)
+        sid = [x[len(split_head):] if x.startswith(split_head) else x for x in sid]
+    logger.debug('removing ')
+    ids = [x.split('.mzML:area')[0] if x.endswith('.mzML:area') else x for x in sid]
+    return ids
+
+def _split_sample_ids(sid, split_char=None, ignore_split=('row m/z', 'row retention time'), split_head=None):
     '''Split the sample id in data table using the split_char returning the first split str.
 
     Used in the read_ms() function, as a callable for the read() function
@@ -879,11 +898,19 @@ def _split_sample_ids(sid, split_char=None, ignore_split=('row m/z', 'row retent
     split_char: str or None, optional
         None to not split the sampleids
         str to split sample id using this string
+    ignore_split: tuple of str, optional
+        sample ids in this list will not be split even if split_char is specified
+    split_head: str or None, optional
+        also remove this head from the sample id before splitting.
+        None to not remove any head.
 
     Returns
     -------
     list of str: the split sample ids
     '''
+    if split_head is not None:
+        logger.info('removing sample id head %s from table sample ids. use "data_table_params={\'cut_sample_id_head\'=None}" to disable cutting.' % split_head)
+        sid = [x[len(split_head):] if x.startswith(split_head) else x for x in sid]
     if split_char is None:
         return sid
     logger.info('splitting table sample ids using separator %s. use "data_table_params={\'cut_sample_id_sep\'=None}" to disable cutting.' % split_char)
