@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2025.12.23
+New features:
+* add 'mzmine4-untargeted' to support untargeted read_ms file types
+
 ## Version 2025.11.25
 Bugfix:
 * update mzmine4 reading to support metadata

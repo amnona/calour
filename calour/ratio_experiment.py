@@ -35,7 +35,7 @@ logger = getLogger(__name__)
 
 
 class RatioExperiment(Experiment):
-    '''This class stores log-ratio data and corresponding analysis methods.
+    '''This class stores log2-ratio data and corresponding analysis methods.
 
     This is a child class of :class:`.Experiment`.
 

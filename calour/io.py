@@ -672,6 +672,8 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         the data file format. options include:
         'mzmine4': load the mzmine4 output csv file
             table is csv, columns are samples
+        'mzmine4-untargeted': load the mzmine4 output csv file for untargeted analysis
+            table is csv, columns are samples
         'mzmine2': load the mzmine2 output csv file.
             MZ and RT are obtained from this file.
             GNPS linking is direct via the unique id column.
@@ -743,12 +745,17 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
                       'biom': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'biom'},
                       'openms': {'sample_in_row': False, 'direct_ids': False, 'get_mz_rt_from_feature_id': True, 'ctype': 'csv'},
                       'gnps-ms2': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'biom'},
-                      'mzmine4': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv', 'split_head': 'datafile:' }}
+                      'mzmine4': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv', 'split_head': 'datafile:' },
+                      'mzmine4-untargeted': {'sample_in_row': False, 'direct_ids': True, 'get_mz_rt_from_feature_id': False, 'ctype': 'csv', 'split_head': 'datafile:' }
+    }
     default_kwargs = {'mzmine2': {'data_file_sep': '\t', 'data_index_col': 2},
                       'biom': {},
                       'openms': {},
                       'gnps-ms2': {},
-                      'mzmine4': {'data_file_sep': ',', 'data_index_col': 'compound_db_identity:compound_name', 'fail_on_nonnumeric': False}}
+                      'mzmine4': {'data_file_sep': ',', 'data_index_col': 'compound_db_identity:compound_name', 'fail_on_nonnumeric': False},
+                      'mzmine4-untargeted': {'data_file_sep': ',', 'data_index_col': 'id', 'fail_on_nonnumeric': False}
+    }
+
 
     if data_file_type not in default_params:
         raise ValueError('data_file_type %s not recognized. valid options are: %s' % (data_file_type, default_params.keys()))
@@ -766,7 +773,7 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
     if get_mz_rt_from_feature_id is None:
         get_mz_rt_from_feature_id = default_params[data_file_type]['get_mz_rt_from_feature_id']
 
-    if data_file_type == 'mzmine4':
+    if data_file_type == 'mzmine4' or data_file_type == 'mzmine4-untargeted':
         split_id_proc = lambda x: _split_mzmine4_sample_ids(x)
     else:
         split_id_proc = lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep, split_head=default_params[data_file_type].get('split_head', None))
@@ -793,10 +800,10 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         sample_pos = np.arange(len(exp.sample_metadata))
         sample_pos = list(set(sample_pos).difference([mzpos, rtpos]))
         exp = exp.reorder(sample_pos)
-    if data_file_type == 'mzmine4':
+    if data_file_type == 'mzmine4' or data_file_type == 'mzmine4-untargeted':
         drop_cols = ['area', 'mz_range:min', 'mz_range:max', 'alignment_scores:rate', 'alignment_scores:align_extra_features', 'alignment_scores:weighted_distance_score', 'alignment_scores:mz_diff_ppm', 'alignment_scores:ion_mobility_absolute_error', 'rt_range:min', 'rt_range:max', 'intensity_range:min','intensity_range:max','compound_db_identity:compound_db_identity','id','height']
         fmd_cols = ['rt', 'alignment_scores:aligned_features_n', 'alignment_scores:mz_diff', 'alignment_scores:rt_absolute_error', 'mz', 'compound_db_identity:compound_name', 'compound_db_identity:compound_annotation_score','compound_db_identity:precursor_mz','compound_db_identity:mz_diff_ppm','compound_db_identity:rt','compound_db_identity:database_name','compound_db_identity:rt_relative_error']
-        drop_endings = ['.mzML:rt','.mzML:mz_range:min','.mzML:mz_range:max','.mzML:fwhm','.mzML:rt_range:min','.mzML:rt_range:max','.mzML:feature_state','.mzML:mz','.mzML:intensity_range:min','.mzML:intensity_range:max','.mzML:asymmetry_factor','.mzML:tailing_factor','.mzML:height']
+        drop_endings = ['.mzML:rt','.mzML:mz_range:min','.mzML:mz_range:max','.mzML:fwhm','.mzML:rt_range:min','.mzML:rt_range:max','.mzML:feature_state','.mzML:mz','.mzML:intensity_range:min','.mzML:intensity_range:max','.mzML:asymmetry_factor','.mzML:tailing_factor','.mzML:height','.mzML:charge','.mzML:isotopes']
         keep_endings = ['.mzML:area']
         exp = exp.filter_ids(drop_cols, axis='s', negate=True)
         for col in fmd_cols:
