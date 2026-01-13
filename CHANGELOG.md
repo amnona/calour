@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.01.14
+New feature:
+* add support for "feature_group" in read_ms mzmine4-untargeted
+
 ## Version 2025.12.23
 New features:
 * add 'mzmine4-untargeted' to support untargeted read_ms file types
