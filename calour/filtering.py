@@ -95,7 +95,7 @@ def downsample(exp: Experiment, field, axis=0, keep=None,
     # convert to string type because nan values, if they exist in the column,
     # will fail `np.unique`
     values = x[field].astype(str).values
-    keep = _balanced_subsample(values, keep, random_seed)
+    keep = _balanced_subsample(values, keep, random_seed, keep_low=keep_low)
     return exp.reorder(keep, axis=axis, inplace=inplace)
 
 

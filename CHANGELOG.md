@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.01.15
+Bug Fixes:
+* fix downsample() to not ignore the keep_low parameter
+
 ## Version 2026.01.14
 New feature:
 * add support for "feature_group" in read_ms mzmine4-untargeted
