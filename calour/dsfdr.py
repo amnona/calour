@@ -340,18 +340,12 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
         t = np.zeros([numbact])
         tstat = np.zeros([numbact])
         u = np.zeros([numbact, numperm])
-        for i in range(numbact):
-            index = np.isfinite(data[i, :])
-            label_no_nan = labels[index]
-            data_no_nan = data[i, :][index]
-            if np.sum(label_no_nan == 0) == 0 or np.sum(label_no_nan == 1) == 0:
-                continue
-            tstat[i] = np.mean(data_no_nan[label_no_nan == 1]) - np.mean(data_no_nan[label_no_nan == 0])
-            permlabels = np.zeros([len(label_no_nan), numperm])
-            for cperm in range(numperm):
-                rlabels = shuffler(label_no_nan)
-                permlabels[:, cperm] = rlabels
-                u[i, cperm] = np.abs(np.mean(data_no_nan[rlabels == 1]) - np.mean(data_no_nan[rlabels == 0]))
+        tstat = np.nanmean(data[:,labels == 1],axis=1) - np.nanmean(data[:,labels == 0],axis=1)
+        permlabels = np.zeros([len(labels), numperm])
+        for cperm in range(numperm):
+            rlabels = shuffler(labels)
+            permlabels[:, cperm] = rlabels
+            u[:, cperm] = np.abs(np.nanmean(data[:,rlabels == 1],axis=1) - np.nanmean(data[:,rlabels == 0],axis=1))
         t = np.abs(tstat)
 
     elif isinstance(method, types.FunctionType):

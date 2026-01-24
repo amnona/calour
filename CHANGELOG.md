@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.01.24
+Bug Fixes:
+* Update diff_abundance_paired() to work with nan-mean-rank method (change also affects diff_abundance() nan-mean-rank method, so expect different results compared to old version when using a given random_seed)
+
 ## Version 2026.01.15
 Bug Fixes:
 * fix downsample() to not ignore the keep_low parameter
