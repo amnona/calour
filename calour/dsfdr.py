@@ -341,6 +341,7 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
         tstat = np.zeros([numbact])
         u = np.zeros([numbact, numperm])
         tstat = np.nanmean(data[:,labels == 1],axis=1) - np.nanmean(data[:,labels == 0],axis=1)
+        logger.debug('num features with <2 non-nans total: %d' % np.sum(np.sum(np.isfinite(data),axis=1)<2))
         permlabels = np.zeros([len(labels), numperm])
         for cperm in range(numperm):
             rlabels = shuffler(labels)
@@ -376,9 +377,22 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
     pvals_u = np.zeros([numbact, numperm])
     # pseudo p-values for permutated test statistic u
     for crow in range(numbact):
+        if np.isnan(t[crow]):
+            # logger.warning('feature %d has NaN original test statistic' % crow)
+            pvals[crow] = 1
+            pvals_u[crow, :] = 0
+            continue
         allstat = np.hstack([t[crow], u[crow, :]])
-        stat_rank = sp.stats.rankdata(allstat, method='min')
-        allstat = 1 - ((stat_rank - 1) / len(allstat))
+        allstat_nonan = allstat[~np.isnan(allstat)]
+        if len(allstat_nonan) == 0:
+            logger.debug('feature %d has all NaN values' % crow)
+            pvals[crow] = 1
+            pvals_u[crow, :] = 0
+            continue
+        stat_rank = sp.stats.rankdata(allstat, method='min',nan_policy='omit')
+        allstat = 1 - ((stat_rank - 1) / len(allstat_nonan))
+        # fix nans to 1
+        allstat[np.isnan(allstat)] = 1
         # assign ranks to t from biggest as 1
         pvals[crow] = allstat[0]
         pvals_u[crow, :] = allstat[1:]
@@ -423,8 +437,12 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
             qvals[pvals == cpval] = cfdr
 
     elif fdr_method == 'bhfdr' or fdr_method == 'filterBH':
+        # replace nans with 1 so won't be selected
+        t[np.isnan(t)] = 0
         t_star = np.array([t, ] * numperm).transpose()
-        pvals = (np.sum(u >= t_star, axis=1) + 1) / (numperm + 1)
+        # pvals = (np.sum(u >= t_star, axis=1) + 1) / (numperm + 1)
+        pvals = (np.nansum(u >= t_star, axis=1) + 1) / (np.sum(np.isfinite(u),axis=1)+1)
+        pvals[~np.isfinite(pvals)] = 1
         reject, qvals, *_ = multipletests(pvals, alpha=alpha, method='fdr_bh')
 
     elif fdr_method == 'byfdr':
@@ -434,5 +452,11 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
 
     else:
         raise ValueError('fdr method %s not supported' % fdr_method)
+
+    # remove features with nan effect size
+    nan_tsat = np.isnan(tstat)
+    if np.sum(nan_tsat) > 0:
+        logger.info('Removing %d features with NaN effect size' % np.sum(nan_tsat))
+        reject[nan_tsat] = False
 
     return reject, tstat, pvals, qvals

@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.01.27
+Bug Fixes:
+* Update diff_abundance/diff_abundance_paired when using nan-mean-rank method, to remove features with nan effect_size (happens when groups contain all nan values)
+
 ## Version 2026.01.24
 Bug Fixes:
 * Update diff_abundance_paired() to work with nan-mean-rank method (change also affects diff_abundance() nan-mean-rank method, so expect different results compared to old version when using a given random_seed)
