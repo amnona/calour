@@ -275,8 +275,9 @@ def _read_csv(fp, sample_in_row=False, sep=',', index_col=0, fail_on_nonnumeric=
 
     # drop any non-numeric columns
     if not fail_on_nonnumeric:
-        # replace nans with 0
-        table.fillna(0, inplace=True)
+        # replace nans with 0 only in numeric columns (pandas 3.0+ compatibility)
+        numeric_cols = table.select_dtypes(include=[np.number]).columns
+        table[numeric_cols] = table[numeric_cols].fillna(0)
         numeric_table = table.apply(pd.to_numeric, errors='coerce')
         non_numeric_cols = table.columns[numeric_table.isnull().any()].tolist()
         if non_numeric_cols:
