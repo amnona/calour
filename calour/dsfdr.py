@@ -281,7 +281,7 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
         if method == 'spearman':
             data = rankdata(data)
             labels = sp.stats.rankdata(labels)
-        meanval = np.mean(data, axis=1).reshape([data.shape[0], 1])
+        meanval = np.nanmean(data, axis=1).reshape([data.shape[0], 1])
         data = data - np.repeat(meanval, data.shape[1], axis=1)
         labels = labels - np.mean(labels)
         tstat = np.dot(data, labels)
@@ -293,9 +293,9 @@ def dsfdr(data, labels, transform_type='rankdata', method='meandiff',
         # note we don't remove from mutiple hypothesis - could be done better
         stdval[stdval == 0] = 1
         tdata = data / np.repeat(stdval, data.shape[1], axis=1)
-        meanval = np.mean(tdata, axis=1).reshape([tdata.shape[0], 1])
+        meanval = np.nanmean(tdata, axis=1).reshape([tdata.shape[0], 1])
         tdata = tdata - np.repeat(meanval, tdata.shape[1], axis=1)
-        meanval = np.mean(data, axis=1).reshape([data.shape[0], 1])
+        meanval = np.nanmean(data, axis=1).reshape([data.shape[0], 1])
         tdata = tdata - np.repeat(meanval, tdata.shape[1], axis=1)
 
         tlabels = labels / np.std(labels)

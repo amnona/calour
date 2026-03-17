@@ -464,14 +464,31 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
     # if we need to process the table sample/feature IDs
     if sample_id_proc is not None:
         sid = sample_id_proc(sid)
+        # find duplicates in sid
     if feature_id_proc is not None:
         fid = feature_id_proc(fid)
 
     sample_metadata = _read_metadata(sid, sample_metadata_file, sample_metadata_kwargs)
     feature_metadata = _read_metadata(fid, feature_metadata_file, feature_metadata_kwargs)
 
+    # check for duplicates in sample_metadata index
+    dup = sample_metadata.index.duplicated(keep=False)
+    if dup.sum() > 0:
+        logger.warning('Found %d duplicate sample ids in sample metadata index. This will cause errors in the analysis. Please fix the sample metadata file.' % dup.sum())
+        logger.warning('First 5 duplicate sample ids: %r' % set(sample_metadata.index[dup].values[:5]))
+    # check for duplicates in feature_metadata index
+    dup = feature_metadata.index.duplicated(keep=False)
+    if dup.sum() > 0:
+        logger.warning('Found %d duplicate feature ids in feature metadata index. This will cause errors in the analysis. Please fix the feature metadata file.' % dup.sum())
+        logger.warning('First 5 duplicate feature ids: %r' % set(feature_metadata.index[dup].values[:5]))
+
     # store the sample and feature ids also as a column (for sorting, etc.)
     sample_metadata['_sample_id'] = sample_metadata.index.values
+    # check for duplicates in feature_metadata index
+    dup = feature_metadata.index.duplicated(keep=False)
+    if dup.sum() > 0:
+        logger.warning('Found %d duplicate feature ids in feature metadata index. This will cause errors in the analysis. Please fix the feature metadata file.' % dup.sum())
+        logger.warning('First 5 duplicate feature ids: %r' % set(feature_metadata.index[dup].values[:5]))
     feature_metadata['_feature_id'] = feature_metadata.index.values
 
     # store the abundance per sample/feature before any procesing

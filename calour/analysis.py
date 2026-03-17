@@ -111,7 +111,10 @@ def correlation(exp: Experiment, field, method='spearman', nonzero=False, transf
     if field not in exp.sample_metadata.columns:
         raise ValueError('Field %s not in sample_metadata. Possible fields are: %s' % (field, exp.sample_metadata.columns))
 
-    cexp = exp.filter_sum_abundance(0, strict=True)
+    if not exp.negatives:
+        cexp = exp.filter_sum_abundance(0, strict=True)
+    else:
+        cexp = exp.copy()
 
     data = cexp.get_data(copy=True, sparse=False).transpose()
 
