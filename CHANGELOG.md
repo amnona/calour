@@ -1,4 +1,9 @@
 # calour changelog
+## Version 2026.03.18
+Bug Fixes:
+* Support pandas 3
+* Fix unit tests
+
 ## Version 2026.01.27
 Bug Fixes:
 * Update diff_abundance/diff_abundance_paired when using nan-mean-rank method, to remove features with nan effect_size (happens when groups contain all nan values)
