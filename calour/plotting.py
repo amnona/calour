@@ -644,7 +644,16 @@ def plot_box(x, y, title='', ax=None, **kwargs) -> mpl.axes.Axes:
 
     uniq = np.unique(x)
     values = [y[x == i] for i in uniq]
-    ax.boxplot(values, labels=uniq, **kwargs)
+    boxplot_kwargs = dict(kwargs)
+    if 'labels' not in boxplot_kwargs and 'tick_labels' not in boxplot_kwargs:
+        # Matplotlib >=3.9 renamed ``labels`` to ``tick_labels``.
+        # Prefer the new name when available, and keep a fallback for older versions.
+        try:
+            ax.boxplot(values, tick_labels=uniq, **boxplot_kwargs)
+        except TypeError:
+            ax.boxplot(values, labels=uniq, **boxplot_kwargs)
+    else:
+        ax.boxplot(values, **boxplot_kwargs)
     # plot significance bars
     n = len(uniq)
     annot = []
