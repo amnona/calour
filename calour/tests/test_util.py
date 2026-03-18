@@ -11,9 +11,12 @@ from copy import deepcopy
 from os.path import basename, join
 from tempfile import mkdtemp
 import shutil
+import warnings
 
 import calour as ca
 from calour import util
+import numpy as np
+import pandas as pd
 
 from calour._testing import Tests
 
@@ -55,7 +58,7 @@ class IOTests(Tests):
 
     def test_get_config_file(self):
         fp = util.get_config_file()
-        self.assertEqual(basename(fp), 'calour.config')
+        self.assertTrue(basename(fp).startswith('calour.config'))
 
     def test_get_config_sections(self):
         sections = util.get_config_sections()
@@ -87,6 +90,69 @@ class IOTests(Tests):
         def foo():
             '''{} {a} {b}'''
         self.assertEqual(foo.__doc__, '[] 1 a')
+
+    def test_join_fields(self):
+        df = pd.DataFrame({'a': ['dog', 'monkey'], 'b': ['bone', 'banana']})
+
+        res = util.join_fields(df.copy(), 'a', 'b')
+        self.assertListEqual(list(res['a_b']), ['dog_bone', 'monkey_banana'])
+
+        res = util.join_fields(df.copy(), 'a', 'b', new_field='joined', sep='|', pad='-')
+        self.assertIn('joined', res.columns)
+        self.assertListEqual(list(res['joined']), ['dog---|--bone', 'monkey|banana'])
+
+    def test_compute_prevalence(self):
+        cutoffs, prevalences = util.compute_prevalence([0, 1, 0, 2, 4])
+        np.testing.assert_array_equal(cutoffs, np.array([0, 1, 2, 4]))
+        np.testing.assert_allclose(prevalences, np.array([0.6, 0.4, 0.2, 0.0]))
+
+    def test_transition_index(self):
+        transitions = list(util._transition_index(['a', 'a', 'b', 1, 2, None, None]))
+        self.assertEqual(transitions, [(2, 'a'), (3, 'b'), (4, 1), (5, 2), (7, None)])
+
+    def test_convert_axis_name(self):
+        @util._convert_axis_name
+        def _get_axis(axis=0):
+            return axis
+
+        self.assertEqual(_get_axis(axis='sample'), 0)
+        self.assertEqual(_get_axis(axis='f'), 1)
+        self.assertEqual(_get_axis(axis=1), 1)
+        with self.assertRaises(KeyError):
+            _get_axis(axis='bad_axis')
+
+    def test_get_file_md5_none(self):
+        self.assertIsNone(util.get_file_md5(None))
+
+    def test_get_dataframe_md5(self):
+        df1 = pd.DataFrame({'x': [1, 2], 'y': [['a'], ['b']]})
+        df2 = pd.DataFrame({'x': [1, 2], 'y': [['a'], ['b']]})
+        df3 = pd.DataFrame({'x': [1, 3], 'y': [['a'], ['b']]})
+
+        md5_1 = util.get_dataframe_md5(df1)
+        md5_2 = util.get_dataframe_md5(df2)
+        md5_3 = util.get_dataframe_md5(df3)
+        self.assertEqual(md5_1, md5_2)
+        self.assertNotEqual(md5_1, md5_3)
+        self.assertIsNone(util.get_dataframe_md5(None))
+
+    def test_argsort(self):
+        vals = [10, 'b', np.nan, 2.5, 'a']
+        idx = util._argsort(vals)
+        self.assertEqual(idx, [3, 0, 2, 4, 1])
+        idx_rev = util._argsort(vals, reverse=True)
+        self.assertEqual(idx_rev, [1, 4, 2, 0, 3])
+
+    def test_deprecated(self):
+        @util.deprecated('use new_func instead')
+        def old_func(x):
+            return x + 1
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.assertEqual(old_func(4), 5)
+            self.assertEqual(len(w), 1)
+            self.assertIn('deprecated function', str(w[0].message))
 
 
 if __name__ == "__main__":

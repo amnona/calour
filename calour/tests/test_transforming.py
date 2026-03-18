@@ -112,6 +112,43 @@ class TestTransforming(Tests):
         assert_array_almost_equal(newexp.data[:, good_features].sum(axis=1), np.ones([exp.data.shape[0]]) * 10000)
         self.assertTrue(np.all(newexp.data[:, bad_features] > exp.data[:, bad_features]))
 
+    def test_permute_data(self):
+        exp = ca.Experiment(data=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                            sample_metadata=pd.DataFrame(index=['s1', 's2', 's3']),
+                            feature_metadata=pd.DataFrame(index=['f1', 'f2', 'f3']),
+                            sparse=False)
+
+        obs = exp.permute_data(normalize=False, random_seed=123)
+        self.assertEqual(obs.shape, exp.shape)
+        for cfeature in range(exp.shape[1]):
+            self.assertCountEqual(list(obs.data[:, cfeature]), list(exp.data[:, cfeature]))
+
+        obs_norm = exp.permute_data(normalize=True, random_seed=123)
+        self.assertAlmostEqual(np.std(obs_norm.data.sum(axis=1)), 0)
+
+    def test_normalize_compositional(self):
+        exp = ca.read(self.test1_biom, self.test1_samp, normalize=None)
+        obs = exp.normalize_compositional(frac=0.1, total=5000)
+        comp_features = exp.normalize().filter_mean_abundance(0.1)
+        use_mask = ~obs.feature_metadata.index.isin(comp_features.feature_metadata.index.values)
+        assert_array_almost_equal(obs.data[:, use_mask].sum(axis=1), np.ones([obs.shape[0]]) * 5000)
+
+    def test_subsample_count_replace(self):
+        exp = ca.Experiment(data=np.array([[1, 2, 3], [4, 5, 6]]),
+                            sample_metadata=pd.DataFrame(index=['s1', 's2']),
+                            feature_metadata=pd.DataFrame(index=['f1', 'f2', 'f3']),
+                            sparse=False)
+        obs = exp.subsample_count(10, replace=True, random_seed=1)
+        assert_array_equal(obs.data.sum(axis=1), np.array([10, 10]))
+
+    def test_subsample_count_non_integer_raises(self):
+        exp = ca.Experiment(data=np.array([[1.1, 2.0, 3.0], [4.0, 5.0, 6.0]]),
+                            sample_metadata=pd.DataFrame(index=['s1', 's2']),
+                            feature_metadata=pd.DataFrame(index=['f1', 'f2', 'f3']),
+                            sparse=False)
+        with self.assertRaises(ValueError):
+            exp.subsample_count(5)
+
     @skipIf(sys.platform.startswith("win"), "skip this test for Windows")
     def test_subsample_count(self):
         exp = ca.Experiment(data=np.array([[1, 2, 3], [4, 5, 6]]),
