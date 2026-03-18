@@ -108,6 +108,7 @@ class CorrelationExperiment(Experiment):
         if 'negatives' not in kwargs:
             kwargs['negatives'] = True
         super().__init__(*args, **kwargs)
+        self.qvals = None
         if qvals is not None:
             if self.data.shape != qvals.shape:
                 raise ValueError('qvals shape %s does not match data shape %s' % (qvals.shape, self.data.shape))
@@ -248,9 +249,9 @@ class CorrelationExperiment(Experiment):
         **kwargs : dict
             Additional arguments to pass to the Experiment.save() function
         '''
-        self._sync_qvals()
         super().save(prefix, **kwargs)
         if self.qvals is not None:
+            self._sync_qvals()
             self.qvals.save(prefix+'_qvals', **kwargs)
             logger.debug('Saved qvals experiment to %s_qvals' % prefix)
         else:
@@ -275,6 +276,8 @@ class CorrelationExperiment(Experiment):
         CorrelationExperiment
             The filtered experiment with data replaced according to the q-values threshold.
         '''
+        if self.qvals is None:
+            raise ValueError('No qvals attached to experiment. Cannot filter based on qvals.')
         self._sync_qvals()
         if not inplace:
             exp = self.copy()
@@ -351,7 +354,7 @@ class CorrelationExperiment(Experiment):
         '''
         if df2 is None:
             df2=df1
-            decription = 'correlation from 1 dataframe'
+            description = 'correlation from 1 dataframe'
         else:
             description = 'correlation from 2 dataframes'
 
