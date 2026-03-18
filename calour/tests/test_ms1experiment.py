@@ -21,7 +21,7 @@ class ExperimentTests(Tests):
     def test_filter_mz_rt(self):
         # load an mzmine2 metabolomics table, and associated gnps clusterinfo file
         exp = ca.read_ms(self.mzmine2_csv, sample_metadata_file=self.gnps_map,
-                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None)
+                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None, data_index_col=0, data_file_sep=',')
 
         # mz filtering
         res = exp.filter_mz_rt(100)
@@ -55,7 +55,7 @@ class ExperimentTests(Tests):
     def test_get_spurious_duplicates(self):
         # load an mzmine2 metabolomics table, and associated gnps clusterinfo file
         exp = ca.read_ms(self.mzmine2_csv, sample_metadata_file=self.gnps_map,
-                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None)
+                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None, data_index_col=0, data_file_sep=',')
         # get rid of the all 0s metabolite (to get rid of std=0 warning)
         exp = exp.filter_sum_abundance(0.1)
 
@@ -80,7 +80,7 @@ class ExperimentTests(Tests):
     def test_merge_similar_features(self):
         # load an mzmine2 metabolomics table, and associated gnps clusterinfo file
         exp = ca.read_ms(self.mzmine2_csv, sample_metadata_file=self.gnps_map,
-                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None)
+                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None, data_index_col=0, data_file_sep=',')
         # no merging since features are far away
         res = exp.merge_similar_features()
         self.assertEqual(res.shape[1], 6)

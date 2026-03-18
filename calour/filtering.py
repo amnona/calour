@@ -93,8 +93,9 @@ def downsample(exp: Experiment, field, axis=0, keep=None,
         raise ValueError('Field %s not in %s_metadata (existing fields are: %s)' % (field, axis_name, x.columns))
 
     # convert to string type because nan values, if they exist in the column,
-    # will fail `np.unique`
-    values = x[field].astype(str).values
+    # will fail `np.unique`. In pandas 3.0+, we need to explicitly fill NaN
+    # values before converting to string to ensure consistent behavior.
+    values = x[field].fillna('nan').astype(str).values
     keep = _balanced_subsample(values, keep, random_seed, keep_low=keep_low)
     return exp.reorder(keep, axis=axis, inplace=inplace)
 

@@ -275,6 +275,7 @@ def join_experiments(exp: Experiment, other, field='_calour_original_experiment'
         if ccol.endswith(suffix):
             expcol = ccol[:-len(suffix)]
             # for the NA cells, fill the column from exp with values from other
+            # Handle both numeric and object columns for pandas 3.0+ compatibility
             fmd[expcol] = fmd[expcol].fillna(fmd[ccol])
         else:
             keep_cols.append(ccol)
@@ -362,9 +363,9 @@ def _check_id_overlap_then_concat(df1, df2, prefixes, field, labels):
         prefix1, prefix2 = prefixes
         logger.info('Both experiments contain same sample IDs - adding prefixes')
         if prefix1:
-            df1.rename(lambda x: '{}_{!s}'.format(prefix1, x), inplace=True)
+            df1 = df1.rename(lambda x: '{}_{!s}'.format(prefix1, x))
         if prefix2:
-            df2.rename(lambda x: '{}_{!s}'.format(prefix2, x), inplace=True)
+            df2 = df2.rename(lambda x: '{}_{!s}'.format(prefix2, x))
 
     df = pd.concat([df1, df2], join='outer')
     if field is not None:

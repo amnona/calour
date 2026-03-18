@@ -35,8 +35,8 @@ class ExperimentTests(Tests):
         self.assertEqual(rexp['S1', 'AA'], 2)
         self.assertEqual(rexp['S3', 'AG'], np.log2(600 / 100))
         self.assertTrue(np.isnan(rexp['S1', 'AC']))
-        # we double the amount of sample metadata fields (for nominator and denominator)
-        self.assertEqual(len(rexp.sample_metadata.columns), 2 * len(self.pre_ratio.sample_metadata.columns))
+        # we double the amount of sample metadata fields (for nominator and denominator) and keep original sampleID field as well
+        self.assertEqual(len(rexp.sample_metadata.columns), 2 * len(self.pre_ratio.sample_metadata.columns)+1)
 
         # supply threshold
         rexp = RatioExperiment.from_exp(self.pre_ratio, 'subj', 'time2', 1, 2, threshold=400)

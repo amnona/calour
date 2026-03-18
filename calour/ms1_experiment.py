@@ -140,7 +140,7 @@ class MS1Experiment(Experiment):
         while len(features) > 0:
             # get the first feature
             cfeature = features.iloc[0]
-            features.drop(index=cfeature.name, inplace=True)
+            features = features.drop(index=cfeature.name)
             # find all mz/rt neighbors of the feature
             mzdist = np.abs(features['MZ'] - cfeature['MZ'])
             rtdist = np.abs(features['RT'] - cfeature['RT'])
@@ -159,7 +159,7 @@ class MS1Experiment(Experiment):
             if len(ckeep) > 0:
                 keep_features.append(cfeature.name)
                 keep_features.extend(ckeep)
-                features.drop(index=ckeep, inplace=True)
+                features = features.drop(index=ckeep)
         return self.filter_ids(keep_features, negate=negate, inplace=inplace)
 
     def merge_similar_features(self, mz_tolerance=0.001, rt_tolerance=0.5):
@@ -196,7 +196,7 @@ class MS1Experiment(Experiment):
             for cpos in okpos:
                 features.iat[cpos, gpos] = cgroup
         exp = exp.aggregate_by_metadata('_metabolite_group', agg='sum', axis='f')
-        exp.feature_metadata.drop('_metabolite_group', axis='columns', inplace=True)
+        exp.feature_metadata = exp.feature_metadata.drop('_metabolite_group', axis='columns')
         logger.info('%d metabolites remaining after merge' % len(exp.feature_metadata))
         return exp
 

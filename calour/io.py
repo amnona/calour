@@ -149,16 +149,16 @@ def read_qiime2(fp, sample_metadata_file=None, rep_seq_file=None, taxonomy_file=
             if not newexp.feature_metadata.index.equals(rep_seqs.index):
                 logger.info('Rep seqs hashes and table hashes are not equal. Using table hashes.')
             # switch the columns so now _feature_id (and the index) is the sequence and not the hash. The hash is copied to '_hash'
-            newexp.feature_metadata.rename(columns={'_feature_id': '_hash'}, inplace=True)
+            newexp.feature_metadata = newexp.feature_metadata.rename(columns={'_feature_id': '_hash'})
             newexp.feature_metadata = newexp.feature_metadata.join(other=rep_seqs, on='_hash', how='left')
-            newexp.feature_metadata.set_index('_feature_id', inplace=True, drop=False)
+            newexp.feature_metadata = newexp.feature_metadata.set_index('_feature_id', drop=False)
 
         # if taxonomy file is supplied, load it into the feature metadata
         if taxonomy_file is not None:
             logger.debug('loading taxonomy file %s' % taxonomy_file)
             tax_name = _file_from_zip(tempdir, taxonomy_file, internal_data='data/taxonomy.tsv')
-            taxonomy_df = pd.read_table(tax_name)
-            taxonomy_df.set_index('Feature ID', inplace=True)
+            taxonomy_df = pd.read_csv(tax_name, sep='\t')
+            taxonomy_df = taxonomy_df.set_index('Feature ID')
             newexp.feature_metadata = newexp.feature_metadata.join(other=taxonomy_df, how='left')
             if len(newexp.feature_metadata.index.intersection(taxonomy_df.index)) == 0:
                 logger.info('No matching sequences in taxonomy file.')
@@ -263,12 +263,11 @@ def _read_csv(fp, sample_in_row=False, sep=',', index_col=0, fail_on_nonnumeric=
     # if the csv file has an additional sep at the end of each line, it cause
     # pandas to create an empty column at the end. This can cause bugs with the
     # normalization. so we remove it.
-    table.dropna(axis='columns', how='all', inplace=True)
+    table = table.dropna(axis='columns', how='all')
     if isinstance(index_col, str):
-        table.set_index(index_col, drop=True, inplace=True)
+        table = table.set_index(index_col, drop=True)
     else:
-        table.set_index(table.columns[index_col], drop=True, inplace=True)
-
+        table = table.set_index(table.columns[index_col], drop=True)
     if sample_in_row:
         table = table.transpose()
         logger.debug('transposed table')
@@ -337,7 +336,7 @@ def _read_metadata(ids, f, kwargs):
         except Exception as err:
             logger.error('Error reading metadata file %r\nError: %s' % (f, err))
             raise err
-        metadata.set_index(metadata.columns[index_col], inplace=True)
+        metadata = metadata.set_index(metadata.columns[index_col])
         mid, ids2 = set(metadata.index), set(ids)
         diff = mid - ids2
         if diff:
@@ -456,7 +455,7 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
     elif data_file_type == 'qiime2':
         sid, fid, data, fmd = _read_qiime2_zip(data_file)
     elif data_file_type == 'tsv':
-        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep='\t', fail_on_nonnumeric=fail_on_nonnumeric)
+        sid, fid, data = _read_csv(data_file, sample_in_row=sample_in_row, sep='\t', index_col=data_index_col, fail_on_nonnumeric=fail_on_nonnumeric)
     else:
         raise ValueError('unkown data_file_type %s' % data_file_type)
 
@@ -502,8 +501,8 @@ def read(data_file, sample_metadata_file=None, feature_metadata_file=None,
         for ccol in fmd.columns:
             if ccol in feature_metadata.columns:
                 renames[ccol] = ccol + '_biom'
-            if renames:
-                fmd.rename(columns=renames, inplace=True)
+        if renames:
+            fmd = fmd.rename(columns=renames)
         # combine it with the feature metadata
         feature_metadata = pd.concat([feature_metadata, fmd], axis=1)
 
@@ -795,14 +794,13 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         split_id_proc = lambda x: _split_mzmine4_sample_ids(x)
     else:
         split_id_proc = lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep, split_head=default_params[data_file_type].get('split_head', None))
-
     logger.debug('Reading MS data (data table %s, map file %s, data_file_type %s)' % (data_file, sample_metadata_file, data_file_type))
     exp = read(data_file, sample_metadata_file, feature_metadata_file,
                data_file_type=default_params[data_file_type]['ctype'], sparse=sparse,
                normalize=None, cls=MS1Experiment,
-            #    sample_id_proc=lambda x: _split_sample_ids(x, split_char=cut_sample_id_sep, split_head=default_params[data_file_type].get('split_head', None)),
                sample_id_proc=split_id_proc,
                sample_in_row=sample_in_row,**kwargs)
+
     # get the MZ/RT data
     if data_file_type == 'mzmine2':
         if 'row m/z' not in exp.sample_metadata.index:
@@ -818,6 +816,7 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
         sample_pos = np.arange(len(exp.sample_metadata))
         sample_pos = list(set(sample_pos).difference([mzpos, rtpos]))
         exp = exp.reorder(sample_pos)
+
     if data_file_type == 'mzmine4' or data_file_type == 'mzmine4-untargeted':
         drop_cols = ['area', 'mz_range:min', 'mz_range:max', 'alignment_scores:rate', 'alignment_scores:align_extra_features', 'alignment_scores:weighted_distance_score', 'alignment_scores:mz_diff_ppm', 'alignment_scores:ion_mobility_absolute_error', 'rt_range:min', 'rt_range:max', 'intensity_range:min','intensity_range:max','compound_db_identity:compound_db_identity','id','height']
         fmd_cols = ['rt', 'alignment_scores:aligned_features_n', 'alignment_scores:mz_diff', 'alignment_scores:rt_absolute_error', 'mz', 'compound_db_identity:compound_name', 'compound_db_identity:compound_annotation_score','compound_db_identity:precursor_mz','compound_db_identity:mz_diff_ppm','compound_db_identity:rt','compound_db_identity:database_name','compound_db_identity:rt_relative_error','feature_group']
@@ -842,7 +841,7 @@ def read_ms(data_file, sample_metadata_file=None, feature_metadata_file=None, gn
                     renames[col] = col.split(ke)[0]
                     
         if renames:
-            exp.sample_metadata.replace(renames, inplace=True)
+            exp.sample_metadata = exp.sample_metadata.replace(renames)
             # also replace the index values
             exp.sample_metadata.index = [renames[x] if x in renames else x for x in exp.sample_metadata.index]
     if get_mz_rt_from_feature_id:

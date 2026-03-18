@@ -64,13 +64,13 @@ class TTests(Tests):
         exp = ca.Experiment(X, smd, sparse=False)
         run = exp.regress('diabetes', KNeighborsRegressor(), KFold(3, shuffle=True, random_state=0))
         observed = next(run)
-        expected = pd.read_table(join(self.test_data_dir, 'test_regress.txt'), index_col=0)
+        expected = pd.read_csv(join(self.test_data_dir, 'test_regress.txt'), sep='\t', index_col=0)
 
         # make sure the column order are the same for comparison
         pdt.assert_frame_equal(observed.sort_index(axis=1), expected.sort_index(axis=1))
 
     def test_plot_scatter(self):
-        res = pd.read_table(join(self.test_data_dir, 'diabetes_pred.txt'), index_col=0)
+        res = pd.read_csv(join(self.test_data_dir, 'diabetes_pred.txt'), sep='\t', index_col=0)
         title = 'foo'
         ax = plot_scatter(res, title=title)
         self.assertEqual(title, ax.get_title())
@@ -96,14 +96,14 @@ class TTests(Tests):
                            predict='predict_proba',
                            cv=KFold(3, shuffle=True, random_state=0))
         observed = next(run)
-        expected = pd.read_table(join(self.test_data_dir, 'test_classify.txt'), index_col=0)
+        expected = pd.read_csv(join(self.test_data_dir, 'test_classify.txt'), sep='\t', index_col=0)
         pdt.assert_frame_equal(expected, observed)
         # plot_roc(observed)
         # from matplotlib import pyplot as plt
         # plt.show()
 
     def test_plot_roc_multi(self):
-        result = pd.read_table(join(self.test_data_dir, 'iris_pred.txt'))
+        result = pd.read_csv(join(self.test_data_dir, 'iris_pred.txt'), sep='\t')
         ax, _ = plot_roc(result)
         legend = ax.get_legend()
         exp = {'Luck',
@@ -116,7 +116,7 @@ class TTests(Tests):
         # plt.show()
 
     def test_plot_roc_multi_no_cv(self):
-        result = pd.read_table(join(self.test_data_dir, 'iris_pred.txt'))
+        result = pd.read_csv(join(self.test_data_dir, 'iris_pred.txt'), sep='\t')
         ax, _ = plot_roc(result, cv=False)
         legend = ax.get_legend()
         exp = {'Luck',
@@ -127,7 +127,7 @@ class TTests(Tests):
         self.assertSetEqual(exp, obs)
 
     def test_plot_roc_binary(self):
-        result = pd.read_table(join(self.test_data_dir, 'iris_pred.txt'))
+        result = pd.read_csv(join(self.test_data_dir, 'iris_pred.txt'), sep='\t')
         result['Y_TRUE'] = ['virginica' if i == 'virginica' else 'not virginica'
                             for i in result['Y_TRUE']]
         result['not virginica'] = 1 - result['virginica']
@@ -203,7 +203,7 @@ class TTests(Tests):
         #                        'setosa': y_score, 'CV': 0})
 
         f = join(self.test_data_dir, 'plot_prc.txt')
-        result = pd.read_table(f, index_col=0)
+        result = pd.read_csv(f, sep='\t', index_col=0)
         ax = plot_prc(result, classes=['setosa'])
         legend = ax.get_legend()
         exp = {'iso-f1 curves',
@@ -212,7 +212,7 @@ class TTests(Tests):
         self.assertSetEqual(exp, obs)
 
     def test_plot_cm(self):
-        result = pd.read_table(join(self.test_data_dir, 'iris_pred.txt'), index_col=0)
+        result = pd.read_csv(join(self.test_data_dir, 'iris_pred.txt'), sep='\t', index_col=0)
         ax = plot_cm(result, classes=['setosa', 'virginica', 'versicolor'])
         # from matplotlib import pyplot as plt
         # plt.show()

@@ -105,8 +105,9 @@ def join_fields(df, field1, field2, new_field=None, sep='_', pad=None):
     max2 = col2.str.len().max()
 
     if pad is not None:
-        col1 = col1.str.pad(width=max1, side='right', fillchar=pad)
-        col2 = col2.str.pad(width=max2, side='left', fillchar=pad)
+        # Convert to int to handle pandas 3.0+ stricter type checking for str.pad width parameter
+        col1 = col1.str.pad(width=int(max1), side='right', fillchar=pad)
+        col2 = col2.str.pad(width=int(max2), side='left', fillchar=pad)
 
     df[new_field] = col1 + sep + col2
 
@@ -343,7 +344,14 @@ def get_dataframe_md5(df):
     new_df = df.copy()
     # convert all non-hashable types to string
     for c in new_df.columns:
-        if not np.issubdtype(new_df[c].dtype, np.number):
+        try:
+            is_numeric = np.issubdtype(new_df[c].dtype, np.number)
+        except TypeError:
+            # In pandas 3.0+, some string dtypes cause TypeError with np.issubdtype
+            # Treat these as non-numeric
+            is_numeric = False
+        
+        if not is_numeric:
             new_df[c] = new_df[c].astype(str)
     logger.debug('getting dataframe md5 for %d rows' % len(df))
     datmd5 = hashlib.md5(hash_pandas_object(new_df).values)

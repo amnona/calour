@@ -208,7 +208,18 @@ class ExperimentTests(Tests):
         df = self.test1.to_pandas(sparse=True)
         data = self.test1.get_data(sparse=False)
         self.assertTrue(isinstance(df.dtypes.iloc[0], pd.SparseDtype))
-        npt.assert_array_almost_equal(df, data)
+        
+        # Convert sparse DataFrame to dense for comparison
+        # In pandas 3.0+, sparse arrays may use NaN as fill_value instead of 0
+        # We need to handle this properly by converting to dense array and filling NaNs with 0
+        if hasattr(df, 'sparse'):
+            # pandas 1.0+ style
+            df_dense = df.sparse.to_dense().fillna(0)
+        else:
+            # fallback for older pandas versions  
+            df_dense = df.to_dense().fillna(0)
+        
+        npt.assert_array_almost_equal(df_dense, data)
 
     def test_from_pands(self):
         df = self.test1.to_pandas(sparse=False)

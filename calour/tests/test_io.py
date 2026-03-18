@@ -200,7 +200,7 @@ class IOTests(Tests):
     def test_read_mzmine2_ms(self):
         # load an mzmine2 metabolomics table, and associated gnps clusterinfo file
         exp = ca.read_ms(self.mzmine2_csv, sample_metadata_file=self.gnps_map,
-                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None)
+                         data_file_type='mzmine2', use_gnps_id_from_AllFiles=False, normalize=None, data_index_col=0, data_file_sep=',')
         self.assertIn('MZ', exp.feature_metadata)
         self.assertIn('RT', exp.feature_metadata)
         self.assertEqual(exp.feature_metadata['MZ'].iloc[1], 200)
@@ -210,7 +210,7 @@ class IOTests(Tests):
     def test_read_mzmine2_ms_with_idstr(self):
         # load an mzmine2 metabolomics table with the sampleids inflated with additional info
         exp = ca.read_ms(self.mzmine2_with_idstr_csv, sample_metadata_file=self.gnps_map,
-                         use_gnps_id_from_AllFiles=False, cut_sample_id_sep='_', normalize=None)
+                         use_gnps_id_from_AllFiles=False, cut_sample_id_sep='_', normalize=None, data_index_col=0, data_file_sep=',')
         self.assertEqual(exp.feature_metadata['MZ'].iloc[1], 200)
         self.assertEqual(exp.feature_metadata['RT'].iloc[0], 1)
         self.assertEqual(exp.sample_metadata['field2'].iloc[0], 'f')

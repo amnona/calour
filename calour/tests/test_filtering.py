@@ -191,7 +191,7 @@ class FTests(Tests):
         self.assertEqual(exp.shape[0], self.test1.shape[0])
 
     def test_filter_prevalence_check(self):
-        # filter over all samples always filter more or euqal features than
+        # filter over all samples always filter more or equal features than
         # filter over sample groups
         frac = 0.001
         exp = self.test1.filter_prevalence(fraction=frac)
@@ -227,13 +227,13 @@ class FTests(Tests):
         self.assertListEqual(exp.feature_metadata.index.tolist(), fids)
 
     def test_filter_mean_abundance_check(self):
-        # filter over all samples always filter more or euqal features than
+        # filter over all samples always filter more or equal features than
         # filter over sample groups
         abund = 0.001
-        exp = self.test1.filter_mean_abundance(abund)
+        exp = self.test1.normalize().filter_mean_abundance(abund)
         n = exp.shape[1]
         for i in self.test1.sample_metadata.columns:
-            x = self.test1.filter_mean_abundance(abund, field=i)
+            x = self.test1.normalize().filter_mean_abundance(abund, field=i)
             self.assertLessEqual(x.shape[1], n)
 
     def test_filter_ids_not_in_list(self):

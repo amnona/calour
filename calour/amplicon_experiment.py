@@ -24,6 +24,7 @@ from logging import getLogger
 from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 import matplotlib as mpl
 
 from .experiment import Experiment
@@ -326,6 +327,8 @@ class AmpliconExperiment(Experiment):
         >>> exp.split_taxonomy()  #doctest: +SKIP
         '''
         self.feature_metadata[names] = self.feature_metadata[field].str.split(sep, expand=True)
+        # replace None with np.nan for better handling of missing values in pandas
+        self.feature_metadata[names] = self.feature_metadata[names].where(self.feature_metadata[names].notnull(), np.nan)
         # return so you can chain the functions
         return self
 

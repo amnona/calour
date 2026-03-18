@@ -134,6 +134,7 @@ class TestTransforming(Tests):
         self.assertIs(obs, exp)
 
         n = 10000
+        exp.normalized = False
         obs = exp.subsample_count(n)
         assert_array_equal(obs.data.sum(axis=1), np.array([]))
 

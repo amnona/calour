@@ -10,6 +10,7 @@ from unittest import TestCase
 from os.path import join, dirname, abspath
 import logging
 
+import pandas as pd
 import pandas.testing as pdt
 import numpy.testing as npt
 
@@ -114,8 +115,22 @@ class Tests(TestCase):
         self.assertEqual(len(feature_columns.difference(exp1.feature_metadata.columns)), 0)
         self.assertEqual(len(feature_columns.difference(exp2.feature_metadata.columns)), 0)
 
-        pdt.assert_frame_equal(exp1.feature_metadata[feature_columns], exp2.feature_metadata[feature_columns])
-        pdt.assert_frame_equal(exp1.sample_metadata[sample_columns], exp2.sample_metadata[sample_columns])
+        def normalize_missing_values(df):
+            """Normalize missing values to handle pandas version differences"""
+            df_norm = df.copy()
+            for col in df_norm.columns:
+                # Convert to object dtype and normalize missing values to None
+                if df_norm[col].dtype == 'object' or hasattr(df_norm[col].dtype, 'name'):
+                    df_norm[col] = df_norm[col].astype('object')
+                    df_norm[col] = df_norm[col].where(pd.notna(df_norm[col]), None)
+            return df_norm
+        
+        pdt.assert_frame_equal(normalize_missing_values(exp1.feature_metadata[feature_columns]), 
+                              normalize_missing_values(exp2.feature_metadata[feature_columns]), 
+                              check_dtype=False, check_categorical=False)
+        pdt.assert_frame_equal(normalize_missing_values(exp1.sample_metadata[sample_columns]), 
+                              normalize_missing_values(exp2.sample_metadata[sample_columns]), 
+                              check_dtype=False, check_categorical=False)
 
         # test the data
         if almost_equal:

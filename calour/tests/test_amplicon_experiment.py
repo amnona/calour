@@ -147,8 +147,8 @@ class ExperimentTests(Tests):
              'p__Firmicutes',
              'p__Firmicutes',
              'p__Firmicutes',
-             None,
-             None]
+             np.nan,
+             np.nan]
         self.assertListEqual(p, self.test1.feature_metadata['phylum'].tolist())
         s = ['s__',
              's__',
@@ -159,9 +159,9 @@ class ExperimentTests(Tests):
              's__',
              's__',
              's__moorei',
-             None,
-             None,
-             None]
+             np.nan,
+             np.nan,
+             np.nan]
         self.assertListEqual(s, self.test1.feature_metadata['species'].tolist())
         g = ['g__Prevotella',
              'g__Mycoplasma',
@@ -172,9 +172,9 @@ class ExperimentTests(Tests):
              'g__Actinomyces',
              'g__',
              'g__Bulleidia',
-             None,
-             None,
-             None]
+             np.nan,
+             np.nan,
+             np.nan]
         self.assertListEqual(g, self.test1.feature_metadata['genus'].tolist())
 
 
