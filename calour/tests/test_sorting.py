@@ -108,6 +108,15 @@ class STests(Tests):
         # look if one feature is in the correct place
         self.assertEqual(exp.feature_metadata.index[1], self.test1.feature_metadata.index[4])
 
+    def test_sort_centroid_sparse_no_transform(self):
+        # Regression test for NumPy 2.x compatibility: make sure we do not rely on np.matrix.
+        exp = self.test1.copy()
+        exp.sparse = True
+        sorted_exp = exp.sort_centroid(transform=None)
+
+        self.assertEqual(sorted_exp.shape, exp.shape)
+        self.assertEqual(set(sorted_exp.feature_metadata.index), set(exp.feature_metadata.index))
+
     def test_sort_abundance_mean(self):
         exp = self.test1.sort_abundance(key=np.mean)
         new_ids = ['GA', 'GT', 'badfeature', 'TT', 'AC', 'AA', 'AG', 'TA', 'AT', 'TG', 'TC', 'GG']

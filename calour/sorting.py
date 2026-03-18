@@ -135,8 +135,9 @@ def sort_centroid(exp: Experiment, transform=log_n, inplace=False, **kwargs) -> 
     data = data.T
     center_mass = data.dot(np.arange(0, data.shape[1]))
     s = data.sum(axis=1)
-    if isinstance(s, np.matrix):
-        s = s.A1
+    # Convert to a flat ndarray without relying on np.matrix, which is
+    # deprecated and may not be available in future NumPy releases.
+    s = np.asarray(s).ravel()
     center_mass = np.divide(center_mass, s)
     sort_pos = np.argsort(center_mass, kind='mergesort')
     exp = exp.reorder(sort_pos, axis=1, inplace=inplace)
