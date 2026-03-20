@@ -85,56 +85,56 @@
 
   <script>
     let lastInfo = null;
-    let resizeWs = null;
     let resizeTimer = null;
+    let resizeInflight = false;
 
-    function ensureResizeSocket() {
-      if (resizeWs && (resizeWs.readyState === WebSocket.OPEN || resizeWs.readyState === WebSocket.CONNECTING)) {
-        return;
-      }
-      try {
-        const figUrl = new URL('$fig_url');
-        const wsProto = figUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = wsProto + '//' + figUrl.host + figUrl.pathname.replace(/\/$/, '') + '/ws';
-        resizeWs = new WebSocket(wsUrl);
-        resizeWs.onopen = () => {
-          try {
-            resizeWs.send(JSON.stringify({type: 'supports_binary', value: false}));
-          } catch (_err) {}
-          sendResizeBurst();
-        };
-        resizeWs.onclose = () => {
-          resizeWs = null;
-        };
-      } catch (_err) {
-        resizeWs = null;
-      }
-    }
-
-    function sendResize() {
+    async function sendResize() {
       const plot = document.querySelector('.plot');
-      if (!plot || !resizeWs || resizeWs.readyState !== WebSocket.OPEN) {
+      if (!plot) {
         return;
       }
+      if (resizeInflight) {
+        return;
+      }
+
       const w = Math.max(50, Math.floor(plot.clientWidth));
       const h = Math.max(50, Math.floor(plot.clientHeight));
+      const dpr = window.devicePixelRatio || 1;
+
+      resizeInflight = true;
       try {
-        resizeWs.send(JSON.stringify({type: 'resize', size: [w, h]}));
+        await fetch('/api/resize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            width: w,
+            height: h,
+            device_pixel_ratio: dpr
+          })
+        });
       } catch (_err) {}
+      resizeInflight = false;
     }
 
-    function sendResizeBurst() {
-      sendResize();
-      setTimeout(sendResize, 120);
-      setTimeout(sendResize, 320);
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function sendResizeBurst() {
+      await sendResize();
+      await sleep(120);
+      await sendResize();
+      await sleep(220);
+      await sendResize();
     }
 
     function scheduleResize() {
-      ensureResizeSocket();
       if (resizeTimer) {
         clearTimeout(resizeTimer);
       }
-      resizeTimer = setTimeout(sendResizeBurst, 80);
+      resizeTimer = setTimeout(() => {
+        void sendResizeBurst();
+      }, 80);
     }
 
     function arraysEqual(a, b) {
@@ -237,7 +237,6 @@
       updateMetaValue('feature_field', 'feature_field_value', lastInfo ? lastInfo.feature_metadata_values : null);
     });
 
-    ensureResizeSocket();
     window.addEventListener('resize', scheduleResize);
     window.addEventListener('orientationchange', scheduleResize);
     document.addEventListener('visibilitychange', () => {

@@ -222,6 +222,27 @@ class PlotGUI_WebAgg(PlotGUI):
 
                 self._send_html(gui._render_side_panel_html())
 
+            def do_POST(self):
+                parsed = urlparse(self.path)
+                if parsed.path != '/api/resize':
+                    self._send_json({'error': 'not found'}, status=404)
+                    return
+
+                try:
+                    raw_len = self.headers.get('Content-Length', '0')
+                    body_len = int(raw_len) if raw_len else 0
+                    body = self.rfile.read(body_len) if body_len > 0 else b'{}'
+                    payload = json.loads(body.decode('utf-8'))
+                    width = int(payload.get('width', 0))
+                    height = int(payload.get('height', 0))
+                    dpr = float(payload.get('device_pixel_ratio', 1.0))
+                except Exception:
+                    self._send_json({'ok': False, 'error': 'bad request'}, status=400)
+                    return
+
+                ok = gui._apply_resize(width=width, height=height, device_pixel_ratio=dpr)
+                self._send_json({'ok': ok})
+
             def log_message(self, fmt, *args):
                 # Silence per-request noise.
                 return
@@ -299,8 +320,33 @@ class PlotGUI_WebAgg(PlotGUI):
 
     def _render_side_panel_html(self):
         fig_url = html.escape(self._figure_url or '')
-        fig_ws_url = html.escape((self._figure_url or '').replace('http://', 'ws://').rstrip('/') + '/ws')
-        return self._get_side_panel_template().safe_substitute(fig_url=fig_url, fig_ws_url=fig_ws_url)
+        return self._get_side_panel_template().safe_substitute(fig_url=fig_url)
+
+    def _apply_resize(self, width, height, device_pixel_ratio=1.0):
+        if self._manager is None:
+            return False
+        if width < 50 or height < 50:
+            return False
+        canvas = self._manager.canvas
+        try:
+            # Keep canvas scaling accurate on high-DPI displays.
+            canvas.handle_set_device_pixel_ratio({'device_pixel_ratio': device_pixel_ratio})
+            canvas.handle_set_dpi_ratio({'dpi_ratio': device_pixel_ratio})
+
+            # Update figure geometry immediately using CSS pixel dimensions.
+            px_w = int(max(1, width * device_pixel_ratio))
+            px_h = int(max(1, height * device_pixel_ratio))
+            fig = canvas.figure
+            fig.set_size_inches(px_w / fig.dpi, px_h / fig.dpi, forward=False)
+
+            # Notify clients and redraw now.
+            self._manager.resize(px_w, px_h, forward=False)
+            canvas.draw()
+            self._manager.refresh_all()
+            return True
+        except Exception as err:
+            logger.debug('WebAgg resize failed: %r', err)
+            return False
 
     @classmethod
     def _get_side_panel_template(cls):
