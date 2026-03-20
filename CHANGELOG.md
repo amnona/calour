@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.03.20
+New Features:
+* Add new gui type for plot: 'webagg', which generates an interactive html page for the heatmap and runs a server for it. Should work with remote server notebook.
+
 ## Version 2026.03.18
 Bug Fixes:
 * Support pandas 3

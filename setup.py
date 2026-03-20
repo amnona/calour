@@ -59,7 +59,7 @@ setup(name='calour',
       url='http://biocore.github.io/calour',
       test_suite='nose.collector',
       packages=find_packages(),
-      package_data={'calour': ['log.cfg', 'calour.config', 'export_html_template.html']},
+    package_data={'calour': ['log.cfg', 'calour.config', 'export_html_template.html', 'heatmap/plotgui_webagg_template.html']},
       install_requires=[
           'numpy',
           'scipy >= 1.10.0',
