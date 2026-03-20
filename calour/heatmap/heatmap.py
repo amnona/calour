@@ -53,7 +53,12 @@ def _create_plot_gui(exp, gui='cli', databases=('dbbact',), tree_size=0):
     ``PlotGUI`` or its child class
     '''
     # load the gui module to handle gui events & link with annotation databases
-    possible_gui = {'qt5': 'PlotGUI_QT5', 'cli': 'PlotGUI_CLI', 'jupyter': 'PlotGUI_Jupyter'}
+    possible_gui = {
+        'qt5': 'PlotGUI_QT5',
+        'cli': 'PlotGUI_CLI',
+        'jupyter': 'PlotGUI_Jupyter',
+        'webagg': 'PlotGUI_WebAgg',
+    }
     if gui in possible_gui:
         gui = possible_gui[gui]
     else:

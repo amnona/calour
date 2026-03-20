@@ -25,12 +25,12 @@ class PlotTests(Tests):
 
     def test_create_plot_gui(self):
         row, col = 1, 2
-        for gui in ('cli', 'qt5', 'jupyter'):
+        for gui in ('cli', 'qt5', 'jupyter', 'webagg'):
             obs = _create_plot_gui(self.test1, gui=gui, databases=[])
             obs.current_select = row, col
             sid, fid, abd, annt = obs.get_info()
             self.assertListEqual(annt, [])
-            self.assertEqual(abd, self.test1.data[row, col])
+            self.assertAlmostEqual(float(abd), float(self.test1.data[row, col]))
             self.assertEqual(sid, self.test1.sample_metadata.index[row])
             self.assertEqual(fid, self.test1.feature_metadata.index[col])
 

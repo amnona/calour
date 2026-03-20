@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Calour Web Heatmap</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; overflow: hidden; }
+    .wrap {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(300px, 28vw, 430px);
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    .plot { border-right: 1px solid #ddd; min-width: 0; min-height: 0; display: flex; }
+    .plot iframe { width: 100%; height: 100%; border: 0; display: block; flex: 1 1 auto; }
+    .side { padding: 12px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+    h1 { font-size: 16px; margin: 0 0 10px 0; }
+    h2 { font-size: 13px; margin: 16px 0 6px 0; }
+    .kv { display: grid; grid-template-columns: 120px 1fr; row-gap: 6px; column-gap: 8px; font-size: 13px; }
+    .muted { color: #666; font-size: 12px; }
+    ul { margin: 0; padding-left: 18px; overflow: auto; }
+    .annotations-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .annotations-panel h2 { margin-top: 0; }
+    .annotations-panel ul { flex: 1; min-height: 0; border: 1px solid #ddd; border-radius: 6px; padding: 8px 8px 8px 20px; }
+    .annotations-panel a { text-decoration: none; }
+    .annotations-panel a:hover { text-decoration: underline; }
+    code { background: #f3f3f3; padding: 2px 4px; border-radius: 4px; }
+
+    @media (max-width: 980px) {
+      body { overflow: auto; }
+      .wrap {
+        position: static;
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(50vh, 1fr) minmax(40vh, auto);
+        height: auto;
+        min-height: 100%;
+      }
+      .plot { border-right: 0; border-bottom: 1px solid #ddd; }
+      .side { min-height: 40vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="plot">
+      <iframe title="Calour Heatmap" src="$fig_url"></iframe>
+    </div>
+    <div class="side">
+      <h1>Calour Interactive Heatmap</h1>
+      <div class="kv">
+        <div>Sample ID</div><div id="sample_id">-</div>
+        <div>Feature ID</div><div id="feature_id">-</div>
+        <div>Abundance</div><div id="abundance">-</div>
+      </div>
+
+      <h2>Sample Metadata</h2>
+      <div class="kv">
+        <div>Field</div>
+        <div>
+          <select id="sample_field" style="width:100%"></select>
+        </div>
+        <div>Value</div><div id="sample_field_value">-</div>
+      </div>
+
+      <h2>Feature Metadata</h2>
+      <div class="kv">
+        <div>Field</div>
+        <div>
+          <select id="feature_field" style="width:100%"></select>
+        </div>
+        <div>Value</div><div id="feature_field_value">-</div>
+      </div>
+
+      <div class="annotations-panel">
+        <h2>Annotations</h2>
+        <ul id="annotations"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let lastInfo = null;
+    let resizeWs = null;
+    let resizeTimer = null;
+
+    function ensureResizeSocket() {
+      if (resizeWs && (resizeWs.readyState === WebSocket.OPEN || resizeWs.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+      try {
+        const figUrl = new URL('$fig_url');
+        const wsProto = figUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = wsProto + '//' + figUrl.host + figUrl.pathname.replace(/\/$/, '') + '/ws';
+        resizeWs = new WebSocket(wsUrl);
+        resizeWs.onopen = () => {
+          try {
+            resizeWs.send(JSON.stringify({type: 'supports_binary', value: false}));
+          } catch (_err) {}
+          sendResizeBurst();
+        };
+        resizeWs.onclose = () => {
+          resizeWs = null;
+        };
+      } catch (_err) {
+        resizeWs = null;
+      }
+    }
+
+    function sendResize() {
+      const plot = document.querySelector('.plot');
+      if (!plot || !resizeWs || resizeWs.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      const w = Math.max(50, Math.floor(plot.clientWidth));
+      const h = Math.max(50, Math.floor(plot.clientHeight));
+      try {
+        resizeWs.send(JSON.stringify({type: 'resize', size: [w, h]}));
+      } catch (_err) {}
+    }
+
+    function sendResizeBurst() {
+      sendResize();
+      setTimeout(sendResize, 120);
+      setTimeout(sendResize, 320);
+    }
+
+    function scheduleResize() {
+      ensureResizeSocket();
+      if (resizeTimer) {
+        clearTimeout(resizeTimer);
+      }
+      resizeTimer = setTimeout(sendResizeBurst, 80);
+    }
+
+    function arraysEqual(a, b) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function syncSelectOptions(selectEl, options) {
+      if (document.activeElement === selectEl) {
+        return;
+      }
+      const current = selectEl.value;
+      const values = options || [];
+      const existing = Array.from(selectEl.options).map(o => o.value);
+      if (arraysEqual(existing, values)) {
+        return;
+      }
+      selectEl.innerHTML = '';
+      values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        selectEl.appendChild(opt);
+      });
+      if (values.includes(current)) {
+        selectEl.value = current;
+      }
+    }
+
+    function updateMetaValue(selectId, valueId, valuesDict) {
+      const sel = document.getElementById(selectId);
+      const key = sel.value;
+      const value = valuesDict && key in valuesDict ? valuesDict[key] : '-';
+      document.getElementById(valueId).textContent = value;
+    }
+
+    function renderAnnotations(items) {
+      const ul = document.getElementById('annotations');
+      ul.innerHTML = '';
+      const values = items || [];
+      if (values.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = 'No annotation found';
+        li.style.color = '#6b7280';
+        ul.appendChild(li);
+        return;
+      }
+      values.forEach(item => {
+        const li = document.createElement('li');
+        const txt = item.text || '';
+        const color = item.color || '#111827';
+        if (item.url) {
+          const a = document.createElement('a');
+          a.href = item.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = txt;
+          a.style.color = color;
+          li.appendChild(a);
+        } else {
+          li.textContent = txt;
+          li.style.color = color;
+        }
+        ul.appendChild(li);
+      });
+    }
+
+    async function refreshInfo() {
+      try {
+        const r = await fetch('/api/info', { cache: 'no-store' });
+        const d = await r.json();
+        lastInfo = d;
+        document.getElementById('sample_id').textContent = d.sample_id || '-';
+        document.getElementById('feature_id').textContent = d.feature_id || '-';
+        document.getElementById('abundance').textContent = d.abundance || '-';
+
+        const sampleSel = document.getElementById('sample_field');
+        const featureSel = document.getElementById('feature_field');
+        syncSelectOptions(sampleSel, d.sample_metadata_fields);
+        syncSelectOptions(featureSel, d.feature_metadata_fields);
+
+        updateMetaValue('sample_field', 'sample_field_value', d.sample_metadata_values);
+        updateMetaValue('feature_field', 'feature_field_value', d.feature_metadata_values);
+        renderAnnotations(d.annotations);
+      } catch (_err) {
+        // keep polling
+      }
+    }
+
+    document.getElementById('sample_field').addEventListener('change', () => {
+      updateMetaValue('sample_field', 'sample_field_value', lastInfo ? lastInfo.sample_metadata_values : null);
+    });
+
+    document.getElementById('feature_field').addEventListener('change', () => {
+      updateMetaValue('feature_field', 'feature_field_value', lastInfo ? lastInfo.feature_metadata_values : null);
+    });
+
+    ensureResizeSocket();
+    window.addEventListener('resize', scheduleResize);
+    window.addEventListener('orientationchange', scheduleResize);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        scheduleResize();
+      }
+    });
+    const plotEl = document.querySelector('.plot');
+    if (window.ResizeObserver && plotEl) {
+      const ro = new ResizeObserver(scheduleResize);
+      ro.observe(plotEl);
+    }
+    const iframeEl = document.querySelector('.plot iframe');
+    if (iframeEl) {
+      iframeEl.addEventListener('load', scheduleResize);
+    }
+
+    setInterval(refreshInfo, 250);
+    refreshInfo();
+    scheduleResize();
+    setTimeout(scheduleResize, 500);
+  </script>
+</body>
+</html>
