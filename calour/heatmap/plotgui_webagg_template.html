@@ -103,7 +103,7 @@
 
       resizeInflight = true;
       try {
-        await fetch('/api/resize', {
+        await fetch('api/resize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -209,7 +209,7 @@
 
     async function refreshInfo() {
       try {
-        const r = await fetch('/api/info', { cache: 'no-store' });
+        const r = await fetch('api/info', { cache: 'no-store' });
         const d = await r.json();
         lastInfo = d;
         document.getElementById('sample_id').textContent = d.sample_id || '-';

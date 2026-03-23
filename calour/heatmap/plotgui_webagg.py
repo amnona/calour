@@ -9,12 +9,11 @@
 from logging import getLogger
 import html
 import json
-import threading
 from pathlib import Path
 from string import Template
 import webbrowser
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+
+import tornado.web
 
 from matplotlib._pylab_helpers import Gcf
 from matplotlib.backends import backend_webagg
@@ -45,6 +44,9 @@ class PlotGUI_WebAgg(PlotGUI):
     _manager_cache = {}
     _orig_get_fig_manager = None
     _side_panel_template = None
+    _active_gui = None
+    _webagg_init_patched = False
+    _orig_webagg_init = None
 
     @ds.with_indent(8)
     def __init__(self, side_panel_port=0, open_browser=True, **kwargs):
@@ -69,8 +71,6 @@ class PlotGUI_WebAgg(PlotGUI):
         self._manager = None
         self._webagg_base_url = None
         self._figure_url = None
-        self._side_server = None
-        self._side_server_thread = None
 
         self._last_info = {
             'sample_id': 'na',
@@ -95,6 +95,8 @@ class PlotGUI_WebAgg(PlotGUI):
             self._attach_figure_to_webagg()
         self._install_gcf_fallback()
         self._ensure_manager_registered()
+        self.__class__._active_gui = self
+        self._patch_webagg_application()
 
         backend_webagg.WebAggApplication.initialize()
         self._webagg_base_url = 'http://{address}:{port}{prefix}'.format(
@@ -111,8 +113,7 @@ class PlotGUI_WebAgg(PlotGUI):
         self._figure_url = '{base}/{fignum}'.format(base=self._webagg_base_url, fignum=self._manager.num)
         print('Calour WebAgg figure URL: {url}'.format(url=self._figure_url))
 
-        self._start_side_server()
-        page_url = 'http://127.0.0.1:{port}/'.format(port=self._side_server.server_port)
+        page_url = '{base}/calour/'.format(base=self._webagg_base_url.rstrip('/'))
         logger.info('Web heatmap companion page: %s', page_url)
         print('Calour WebAgg heatmap is available at: {url}'.format(url=page_url))
 
@@ -190,66 +191,56 @@ class PlotGUI_WebAgg(PlotGUI):
         if hasattr(Gcf, 'set_active'):
             Gcf.set_active(self._manager)
 
-    def _start_side_server(self):
-        gui = self
+    @classmethod
+    def _patch_webagg_application(cls):
+        if cls._webagg_init_patched:
+            return
 
-        class SidePanelHandler(BaseHTTPRequestHandler):
-            def _send_json(self, payload, status=200):
-                body = json.dumps(payload).encode('utf-8')
-                self.send_response(status)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.send_header('Content-Length', str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
+        cls._orig_webagg_init = backend_webagg.WebAggApplication.__init__
 
-            def _send_html(self, body, status=200):
-                encoded = body.encode('utf-8')
-                self.send_response(status)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
-                self.send_header('Content-Length', str(len(encoded)))
-                self.end_headers()
-                self.wfile.write(encoded)
+        class CompanionPageHandler(tornado.web.RequestHandler):
+            def get(self):
+                gui = cls._active_gui
+                if gui is None:
+                    raise tornado.web.HTTPError(503)
+                self.set_header('Content-Type', 'text/html; charset=utf-8')
+                self.write(gui._render_side_panel_html())
 
-            def do_GET(self):
-                parsed = urlparse(self.path)
-                if parsed.path == '/api/info':
-                    self._send_json(gui._collect_side_info())
-                    return
+        class CompanionInfoHandler(tornado.web.RequestHandler):
+            def get(self):
+                gui = cls._active_gui
+                if gui is None:
+                    raise tornado.web.HTTPError(503)
+                self.set_header('Content-Type', 'application/json; charset=utf-8')
+                self.write(json.dumps(gui._collect_side_info()))
 
-                if parsed.path != '/':
-                    self._send_json({'error': 'not found'}, status=404)
-                    return
-
-                self._send_html(gui._render_side_panel_html())
-
-            def do_POST(self):
-                parsed = urlparse(self.path)
-                if parsed.path != '/api/resize':
-                    self._send_json({'error': 'not found'}, status=404)
-                    return
-
+        class CompanionResizeHandler(tornado.web.RequestHandler):
+            def post(self):
+                gui = cls._active_gui
+                if gui is None:
+                    raise tornado.web.HTTPError(503)
                 try:
-                    raw_len = self.headers.get('Content-Length', '0')
-                    body_len = int(raw_len) if raw_len else 0
-                    body = self.rfile.read(body_len) if body_len > 0 else b'{}'
-                    payload = json.loads(body.decode('utf-8'))
+                    payload = json.loads(self.request.body.decode('utf-8') or '{}')
                     width = int(payload.get('width', 0))
                     height = int(payload.get('height', 0))
                     dpr = float(payload.get('device_pixel_ratio', 1.0))
                 except Exception:
-                    self._send_json({'ok': False, 'error': 'bad request'}, status=400)
+                    self.set_status(400)
+                    self.write({'ok': False, 'error': 'bad request'})
                     return
-
                 ok = gui._apply_resize(width=width, height=height, device_pixel_ratio=dpr)
-                self._send_json({'ok': ok})
+                self.write({'ok': ok})
 
-            def log_message(self, fmt, *args):
-                # Silence per-request noise.
-                return
+        def _patched_init(app_self, url_prefix=''):
+            cls._orig_webagg_init(app_self, url_prefix=url_prefix)
+            app_self.add_handlers(r'.*$', [
+                (url_prefix + r'/calour/?', CompanionPageHandler),
+                (url_prefix + r'/calour/api/info', CompanionInfoHandler),
+                (url_prefix + r'/calour/api/resize', CompanionResizeHandler),
+            ])
 
-        self._side_server = ThreadingHTTPServer(('127.0.0.1', self.side_panel_port), SidePanelHandler)
-        self._side_server_thread = threading.Thread(target=self._side_server.serve_forever, daemon=True)
-        self._side_server_thread.start()
+        backend_webagg.WebAggApplication.__init__ = _patched_init
+        cls._webagg_init_patched = True
 
     def _collect_side_info(self):
         sid, fid, abd, annt = self.get_info()
@@ -329,20 +320,10 @@ class PlotGUI_WebAgg(PlotGUI):
             return False
         canvas = self._manager.canvas
         try:
-            # Keep canvas scaling accurate on high-DPI displays.
-            canvas.handle_set_device_pixel_ratio({'device_pixel_ratio': device_pixel_ratio})
-            canvas.handle_set_dpi_ratio({'dpi_ratio': device_pixel_ratio})
-
-            # Update figure geometry immediately using CSS pixel dimensions.
-            px_w = int(max(1, width * device_pixel_ratio))
-            px_h = int(max(1, height * device_pixel_ratio))
-            fig = canvas.figure
-            fig.set_size_inches(px_w / fig.dpi, px_h / fig.dpi, forward=False)
-
-            # Notify clients and redraw now.
-            self._manager.resize(px_w, px_h, forward=False)
-            canvas.draw()
-            self._manager.refresh_all()
+            # Use the same event API as the browser client.
+            self._manager.handle_json({'type': 'set_device_pixel_ratio', 'device_pixel_ratio': device_pixel_ratio})
+            self._manager.handle_json({'type': 'set_dpi_ratio', 'dpi_ratio': device_pixel_ratio})
+            self._manager.handle_json({'type': 'resize', 'width': width, 'height': height})
             return True
         except Exception as err:
             logger.debug('WebAgg resize failed: %r', err)
