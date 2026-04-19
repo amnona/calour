@@ -16,6 +16,7 @@ from .correlation_experiment import CorrelationExperiment
 from .ms1_experiment import MS1Experiment
 from .mrna_experiment import mRNAExperiment
 from .ratio_experiment import RatioExperiment
+from .uniref_experiment import UniRefExperiment
 from .io import read, read_amplicon, read_ms, read_qiime2, read_correlation
 from .util import set_log_level, register_functions
 
@@ -25,7 +26,7 @@ __version__ = "2026.03.20"
 
 __all__ = ['read', 'read_amplicon', 'read_ms', 'read_qiime2', 'read_correlation',
            'Experiment', 'AmpliconExperiment', 'MS1Experiment','mRNAExperiment',
-           'CorrelationExperiment','RatioExperiment',
+           'CorrelationExperiment','RatioExperiment','UniRefExperiment',
            'set_log_level']
 
 
