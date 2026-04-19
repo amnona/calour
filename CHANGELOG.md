@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.04.19
+New Features:
+* Add UniRefExperiment class for working with uniref data (sample * uniref_ids). interactive heatmap gene information is via the uniref_calour
+
 ## Version 2026.03.20
 New Features:
 * Add new gui type for plot: 'webagg', which generates an interactive html page for the heatmap and runs a server for it. Should work with remote server notebook.
