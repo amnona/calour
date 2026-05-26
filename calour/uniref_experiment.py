@@ -22,13 +22,17 @@ Classes
 
 from logging import getLogger
 from copy import deepcopy
+from collections import defaultdict
 
 import numpy as np
 import matplotlib as mpl
+import pandas as pd
 
 from .experiment import Experiment
 from .io import read
 from .util import _get_taxonomy_string, _to_list
+from .database import _get_database_class
+from .experiment import Experiment
 
 
 logger = getLogger(__name__)
@@ -156,3 +160,64 @@ class UniRefExperiment(Experiment):
 
         dat = read(*kargs, **kwargs, cls=UniRefExperiment)
         return dat
+    
+
+    def fetch_uniref_info(self):
+        '''Prefetch the uniref information for the features in the experiment and add it to the feature metadata.
+        This will add the per-unirefid information to the local database, so it will be available for other datasets/rerunning the same dataset without the need to fetch it again from the remote servers.
+        '''
+        from tqdm import tqdm
+
+        db = _get_database_class('uniref')
+        for x in tqdm(self.feature_metadata.index.values):
+            cid = x.split('.')[0]
+            res=db._get_uniref_info(cid)
+
+    
+    def aggregate_uniref(self, aggregate=['name: ', 'go term: ']):
+        '''Aggregate the features in the experiment by info from uniref annotations
+        It will add the number of observations of each feature to each name/go term it appears in, and create a new experiment with the aggregated data.
+    
+        Parameters
+        ----------
+        aggregate: list of str
+            the uniref annotation types to aggregate by. 
+            Options include 'name: ' (common name), 'go term: ' (gene ontology term), 'organism: '
+        
+        Returns
+        -------
+        calour.Experiment
+             a new experiment (Samples * aggregated_features) with the aggregated data. The feature metadata have the columns:
+             name: the name of the annotation (e.g. go term, etc.)
+             uniref_ids: the list of uniref ids that were aggregated
+        '''
+        db=_get_database_class('uniref')
+        all_names = defaultdict(list)
+        for cid,x in self.feature_metadata.iterrows():
+            annotations=db.get_seq_annotation_strings(cid)
+            for canno in annotations:
+                cname = None
+                for agg in aggregate:
+                    if canno[1].startswith(agg):
+                        cname = canno[1][len(agg):]
+                        all_names[cname].append(cid)
+                        break
+                if cname is None:
+                    continue
+                all_names[cname].append(cid)
+
+        # print the top common names
+        logger.info('found %d unique names' % len(all_names))
+        for cname, cids in sorted(all_names.items(), key=lambda x: len(x[1]), reverse=True)[:10]:
+            logger.debug('%s: %d', cname, len(cids))
+
+        # create new names experiment
+        names_dat = np.zeros((self.shape[0], len(all_names)), dtype=float)
+        data = self.get_data(sparse=False)
+        for i, (cname, cids) in enumerate(all_names.items()):
+            for cid in cids:
+                cid_pos = [self.feature_metadata.index.get_loc(cid)][0]
+                names_dat[:, i] += data[:, cid_pos]
+        fmd = pd.DataFrame([all_names.keys(), all_names.values()], columns=['name', 'uniref_ids'])
+        names_dat_exp = Experiment(names_dat, self.sample_metadata.copy(), fmd, description=f'created from {self.description} by function_exp_from_uniref', sparse=False)
+        return names_dat_exp
