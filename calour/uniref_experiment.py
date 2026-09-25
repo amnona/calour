@@ -218,6 +218,7 @@ class UniRefExperiment(Experiment):
             for cid in cids:
                 cid_pos = [self.feature_metadata.index.get_loc(cid)][0]
                 names_dat[:, i] += data[:, cid_pos]
-        fmd = pd.DataFrame([all_names.keys(), all_names.values()], columns=['name', 'uniref_ids'])
+        fmd = pd.DataFrame(list(all_names.keys()), columns=['name'])
+        fmd['uniref_ids'] = list(all_names.values())
         names_dat_exp = Experiment(names_dat, self.sample_metadata.copy(), fmd, description=f'created from {self.description} by function_exp_from_uniref', sparse=False)
         return names_dat_exp

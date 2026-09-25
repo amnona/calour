@@ -177,13 +177,6 @@ def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=
 
     Parameters
     ----------
-    term_type : str (optional)
-        What types of annotations/terms to include in enrichment analysis.
-        Options are:
-        'term' - ontology terms associated with each feature.
-        'parentterm' - ontology terms including parent terms associated with each feature.
-        'annotation' - the full annotation strings associated with each feature
-        'combined' - combine 'term' and 'annotation'
     max_show: int or (int, int) or None (optional)
         The maximal number of terms to show
         if None, show all terms
@@ -202,6 +195,24 @@ def plot_diff_abundance_enrichment(exp: Experiment, max_show=10, max_len=40, ax=
         Additional parameters for the number of enriched experiments labels (inside the bars) fonts. See matplolib.axes.Axes.text(). If None do not display the number of enriched experiments
     **kwargs : dict, optional
         Additional database specific enrichment parameters (see per-database module documentation for .enrichment() method)
+        For dbBact these include:
+        'focus_terms': list of str, optional
+            The list of terms to focus on. If provided, only annotations containing all these terms will be considered for enrichment analysis. If None (default), all annotations will be considered.
+        term_type : str (optional)
+            What types of annotations/terms to include in enrichment analysis.
+            Options are:
+            'term' - ontology terms associated with each feature.
+            'parentterm' - ontology terms including parent terms associated with each feature.
+            'annotation' - the full annotation strings associated with each feature
+            'combined' - combine 'term' and 'annotation'
+        focus_negate: list of str or None, optional
+            if not None, throw away annotations with any of the focus_negate terms
+        ignore_exp: list of int or None or True, optional
+            List of experiments to ignore in the analysis
+            True to ignore annotations from the current experiment
+            None (default) to use annotations from all experiments including the current one
+
+
 
     Returns
     -------

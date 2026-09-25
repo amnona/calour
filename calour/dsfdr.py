@@ -3,7 +3,11 @@ import types
 import numpy as np
 import scipy as sp
 import scipy.stats
-from statsmodels.sandbox.stats.multicomp import multipletests
+try:
+    from statsmodels.stats.multitest import multipletests
+except ImportError:
+    from statsmodels.sandbox.stats.multicomp import multipletests
+
 from scipy.special import comb
 
 logger = getLogger(__name__)

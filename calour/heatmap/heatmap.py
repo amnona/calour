@@ -41,6 +41,7 @@ def _create_plot_gui(exp, gui='cli', databases=('dbbact',), tree_size=0):
         'cli' (default) : just cli information about selected sample/feature.
         'qt5' : gui using QT5 (with full dbBact interface)
         'jupyter' : gui for Jupyter notebooks (using widgets)
+        'webagg' : gui for web using WebAgg (with full dbBact interface) - for working on remote server. need to open resulting html address which is printed
         Other string : name of child class of plotgui (which should reside in heatmap/lower(classname).py)
     databases : list of str, optional
         Names of the databases to use to obtain info about sequences. options:

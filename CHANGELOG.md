@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.09.25
+Bug Fixes:
+* Update to work with newer statsmodels package
+
 ## Version 2026.04.19
 New Features:
 * Add UniRefExperiment class for working with uniref data (sample * uniref_ids). interactive heatmap gene information is via the uniref_calour
