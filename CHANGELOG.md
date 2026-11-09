@@ -1,5 +1,16 @@
 # calour changelog
+## Version 2026.11.10
+Performance:
+* Speed up join_experiments() on experiments with many features (feature position lookup is now a hash lookup instead of O(n^2) list search)
+
+Bug Fixes:
+* Fix UniRefExperiment.aggregate_uniref() counting each feature twice (uniref_ids listed each id twice and aggregated counts were doubled)
+
 ## Version 2026.09.25
+New Features:
+* Add UniRefExperiment.fetch_uniref_info() to prefetch uniref annotations for all features into the local database cache
+* Add UniRefExperiment.aggregate_uniref() to create a new experiment with features aggregated by uniref annotation (common name / go term / organism)
+
 Bug Fixes:
 * Update to work with newer statsmodels package
 

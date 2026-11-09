@@ -196,15 +196,11 @@ class UniRefExperiment(Experiment):
         for cid,x in self.feature_metadata.iterrows():
             annotations=db.get_seq_annotation_strings(cid)
             for canno in annotations:
-                cname = None
                 for agg in aggregate:
                     if canno[1].startswith(agg):
                         cname = canno[1][len(agg):]
                         all_names[cname].append(cid)
                         break
-                if cname is None:
-                    continue
-                all_names[cname].append(cid)
 
         # print the top common names
         logger.info('found %d unique names' % len(all_names))

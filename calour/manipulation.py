@@ -282,12 +282,13 @@ def join_experiments(exp: Experiment, other, field='_calour_original_experiment'
     newexp.feature_metadata = fmd[keep_cols]
 
     # merge data table
-    # join the data of the two experiments, putting 0 if feature is not in an experiment
-    all_features = fmd.index.tolist()
+    # join the data of the two experiments, putting 0 if feature is not in an experiment.
+    # get_indexer() maps each feature to its column in the merged table using a hash lookup
+    # (feature IDs are unique - checked by validate()), avoiding O(n^2) list.index() calls
     all_data = np.zeros([len(smd), len(fmd)])
-    idx = [all_features.index(i) for i in exp.feature_metadata.index]
+    idx = fmd.index.get_indexer(exp.feature_metadata.index)
     all_data[0:len(smd1), idx] = exp.get_data(sparse=False)
-    idx = [all_features.index(i) for i in other.feature_metadata.index]
+    idx = fmd.index.get_indexer(other.feature_metadata.index)
     all_data[len(smd1):len(smd), idx] = other.get_data(sparse=False)
     newexp.data = all_data
 
