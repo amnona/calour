@@ -1,4 +1,8 @@
 # calour changelog
+## Version 2026.11.11
+New Features:
+* Add correlation_paired() - correlation with a numeric field where permutations are done only within each group (i.e. subject) defined by pair_field. Supports transform='pair_rank' (rank samples within each group), similar to diff_abundance_paired()
+
 ## Version 2026.11.10
 Performance:
 * Speed up join_experiments() on experiments with many features (feature position lookup is now a hash lookup instead of O(n^2) list search)

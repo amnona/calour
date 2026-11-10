@@ -12,7 +12,7 @@ import numpy as np
 import pandas.testing as pdt
 
 import calour as ca
-from calour.analysis import diff_abundance, diff_abundance_paired
+from calour.analysis import diff_abundance, diff_abundance_paired, correlation_paired, _prepare_paired
 from calour._testing import Tests
 
 
@@ -145,6 +145,56 @@ class TestAnalysis(Tests):
         expected_ids = ['AA', 'AT', 'GG', 'TA']
         for cid in expected_ids:
             self.assertIn(cid, dd.feature_metadata._feature_id)
+
+    def test_correlation_paired(self):
+        # the paired test should find 4 features
+        dd = correlation_paired(self.test_paired, 'subj', field='group', alpha=0.1, random_seed=2020)
+        self.assertCountEqual(dd.feature_metadata._feature_id, ['AA', 'AG', 'TA', 'TT'])
+        self.assertEqual(dd.shape[0], 16)
+        # direction is according to the sign of the correlation
+        self.assertEqual(dd.feature_metadata.loc['AG', '_calour_direction'], 'group')
+        self.assertEqual(dd.feature_metadata.loc['TT', '_calour_direction'], 'Anti-group')
+        # and the unpaired test (which is less sensitive for this dataset - we should get only 2)
+        dd = self.test_paired.correlation('group', alpha=0.1, random_seed=2020)
+        self.assertCountEqual(dd.feature_metadata._feature_id, ['AG', 'TT'])
+        # test with ranking within the pairs, and as a class method
+        dd = self.test_paired.correlation_paired('subj', field='group', transform='pair_rank', alpha=0.1, random_seed=2020)
+        self.assertCountEqual(dd.feature_metadata._feature_id, ['AA', 'AG', 'TA', 'TT'])
+        # test with more than 2 samples per group (group3==1 has only 1 sample so it is dropped)
+        dd = correlation_paired(self.test_paired, 'group3', field='id', alpha=0.1, random_seed=2020)
+        self.assertEqual(dd.shape[0], 15)
+        self.assertNotIn('S1', dd.sample_metadata.index)
+
+    def test_correlation_paired_nan_labels(self):
+        # samples with non-numeric field values are dropped before pairing,
+        # so their pair partner becomes a singleton and is dropped too
+        exp = self.test_paired.copy()
+        exp.sample_metadata['group'] = exp.sample_metadata['group'].astype(object)
+        exp.sample_metadata.loc['S1', 'group'] = 'na'
+        dd = correlation_paired(exp, 'subj', field='group', alpha=0.1, random_seed=2020)
+        self.assertEqual(dd.shape[0], 14)
+        self.assertNotIn('S1', dd.sample_metadata.index)
+        self.assertNotIn('S2', dd.sample_metadata.index)
+
+    def test_correlation_paired_shuffler(self):
+        # the paired shuffler should only permute labels within each pair_field value
+        exp, transform, shuffler = _prepare_paired(self.test_paired, 'group3', 'rankdata', random_seed=2020)
+        self.assertEqual(transform, 'rankdata')
+        labels = exp.sample_metadata['id'].values.astype(float)
+        groups = exp.sample_metadata['group3'].values
+        changed = False
+        for i in range(10):
+            shuffled = shuffler(labels)
+            for cgroup in np.unique(groups):
+                self.assertCountEqual(shuffled[groups == cgroup], labels[groups == cgroup])
+            changed = changed or not np.array_equal(shuffled, labels)
+        self.assertTrue(changed)
+
+    def test_correlation_paired_bad_field(self):
+        with self.assertRaises(ValueError):
+            correlation_paired(self.test_paired, 'subj', field='not_a_field')
+        with self.assertRaises(ValueError):
+            correlation_paired(self.test_paired, 'not_a_field', field='group')
 
 
 if __name__ == "__main__":

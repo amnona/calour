@@ -10,6 +10,7 @@ Functions
    :toctree: generated
 
    correlation
+   correlation_paired
    diff_abundance
    diff_abundance_kw
    diff_abundance_paired
@@ -386,6 +387,96 @@ def diff_abundance_paired(exp: Experiment, pair_field, field, val1, val2=None, t
         val2 = _to_list(val2)
         exp = exp.filter_samples(field, val1 + val2, negate=False)
 
+    exp, transform, shuffler = _prepare_paired(exp, pair_field, transform, random_seed)
+    newexp = exp.diff_abundance(shuffler=shuffler, field=field, val1=val1, val2=val2, random_seed=random_seed, transform=transform, **kwargs)
+    return newexp
+
+
+@format_docstring(_CALOUR_PVAL, _CALOUR_QVAL, _CALOUR_STAT, _CALOUR_DIRECTION)
+def correlation_paired(exp: Experiment, pair_field, field, transform=None, random_seed=None, **kwargs) -> Experiment:
+    '''Find features correlated with a numeric metadata field, with permutations done within each sample group (i.e. subject).
+
+    Same as :func:`correlation`, but the null distribution is built by
+    shuffling the `field` values only among samples sharing the same
+    `pair_field` value (e.g. timepoints of the same subject), so
+    between-subject differences do not drive the result.
+
+    Parameters
+    ----------
+    pair_field: str
+        The sample metadata field on which samples are paired/grouped (i.e. subject id).
+        NOTE:
+        pair_field values with < 2 samples are dropped.
+        Samples with a non-numeric value in `field` are dropped before pairing.
+    field : str
+        The field to test by. Values are converted to numeric.
+    transform: str or None, optional
+        Similar to correlation transform parameter. Additional options are:
+            'pair_rank': for each group of samples (a single value in pair_field), samples are ranked within the group.
+
+    Keyword Arguments
+    -----------------
+    %(analysis.correlation.parameters)s
+
+    Returns
+    -------
+    Experiment
+        The experiment with only correlated features, sorted according to correlation coefficient.
+        Contains only the samples used for the test (paired samples with a numeric `field` value).
+
+        * '{}' : the non-adjusted p-values for each feature
+        * '{}' : the FDR-adjusted q-values for each feature
+        * '{}' : the statistics (correlation coefficient if
+          the `method` is 'spearman' or 'pearson'). If it
+          is larger than zero for a given feature, it indicates this
+          feature is positively correlated with the sample metadata;
+          otherwise, negatively correlated.
+        * '{}' : `field` if positively correlated, 'Anti-`field`' if negatively correlated.
+    '''
+    if field not in exp.sample_metadata.columns:
+        raise ValueError('Field %s not in sample_metadata. Possible fields are: %s' % (field, exp.sample_metadata.columns))
+
+    # drop samples with non-numeric field values here (rather than inside correlation())
+    # so the sample positions used by the paired shuffler match the data passed to the test
+    labels = pd.to_numeric(exp.sample_metadata[field], errors='coerce')
+    nan_samples = labels.isna().values
+    if nan_samples.any():
+        logger.warning('NaN values encountered in labels for correlation. Ignoring these samples (%d). %d samples left' % (nan_samples.sum(), (~nan_samples).sum()))
+        exp = exp.reorder(~nan_samples, axis=0)
+
+    exp, transform, shuffler = _prepare_paired(exp, pair_field, transform, random_seed)
+    newexp = exp.correlation(shuffler=shuffler, field=field, random_seed=random_seed, transform=transform, **kwargs)
+    return newexp
+
+
+def _prepare_paired(exp, pair_field, transform, random_seed):
+    '''Prepare an experiment for a paired (within group) permutation test.
+
+    Drops pair_field values with < 2 samples, applies the 'pair_rank' transform
+    if requested, and creates a shuffler that permutes labels only within each pair_field value.
+
+    Parameters
+    ----------
+    exp : Experiment
+    pair_field : str
+        The sample metadata field on which samples are paired.
+    transform : str or None
+        The transform requested. If 'pair_rank', the data is ranked within each pair_field value.
+    random_seed : int, np.random.Generator instance or None
+        The random seed for the paired shuffler
+
+    Returns
+    -------
+    exp : Experiment
+        The experiment containing only samples with >1 sample per pair_field value
+    transform : str or None
+        The transform to pass to the test (None if 'pair_rank' was already applied)
+    shuffler : function
+        Shuffles labels within each pair_field value. Input is the labels (np.array) and output is the shuffled labels (np.array).
+    '''
+    if pair_field not in exp.sample_metadata.columns:
+        raise ValueError('Pair field %s not in sample_metadata. Possible fields are: %s' % (pair_field, exp.sample_metadata.columns))
+
     # keep only paired samples
     drop_values = []
     for cval, cexp in exp.iterate(pair_field):
@@ -407,13 +498,13 @@ def diff_abundance_paired(exp: Experiment, pair_field, field, val1, val2=None, t
     if transform == 'pair_rank':
         # copy so we don't change the original experiment
         exp = exp.copy()
-        # make all pairs to 0/1 (low/high) for each feature
+        # rank the samples within each pair_field value for each feature
         exp.sparse = False
         for cval in exp.sample_metadata[pair_field].unique():
             cpos = np.where(exp.sample_metadata[pair_field] == cval)[0]
             cdat = exp.data[cpos, :]
             exp.data[cpos, :] = sp.stats.rankdata(cdat, axis=0)
-        # no need to do another transform in diff_abundance
+        # no need to do another transform in the test
         transform = None
 
     # create the numpy.random.Generator for the paired shuffler
@@ -425,10 +516,7 @@ def diff_abundance_paired(exp: Experiment, pair_field, field, val1, val2=None, t
             clabels[cgroup] = rng.permutation(clabels[cgroup])
         return clabels
 
-    # # sort by pairing (so the pair shuffler will work)
-    # exp = exp.sort_samples(pair_field)
-    newexp = exp.diff_abundance(shuffler=_pair_shuffler, field=field, val1=val1, val2=val2, random_seed=random_seed, transform=transform, **kwargs)
-    return newexp
+    return exp, transform, _pair_shuffler
 
 
 def _new_experiment_from_pvals(cexp, exp, keep, odif, pvals, qvals) -> Experiment:
